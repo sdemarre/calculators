@@ -1334,7 +1334,7 @@ public final class quad extends Applet implements Runnable {
     }
 
     public String doIt() {
-	String start = startCalc("26", "-91", "-26", "-58", "-59", "-71", "3", "", "");
+	String start = startCalc("26", "-91", "-26", "-58", "-59", "-71", "6", "step", "");
 	if (calcThread != null) {
 	    try {
 		calcThread.join();
