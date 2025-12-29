@@ -36,7 +36,15 @@ flags_factorization=$(flags_factorization_1) $(flags_cov_and_asan) $(flags_gener
 flags_squares=$(flags_squares_1) $(flags_cov_and_asan) $(flags_general)
 flags_other=$(flags_other_1) $(flags_cov_and_asan) $(flags_general)
 h_files=batch.h bignbr.h commonstruc.h expression.h factor.h highlevel.h polynomial.h showtime.h skiptest.h string/strings.h
-targets = ecm quad quadmod fsquares fcubes polfact dilog gaussian contfrac blockly tsqcubes sumquad divisors isprime modmult testmodmult prod
+targets = ecm quad quadmod fsquares fcubes polfact dilog gaussian contfrac blockly tsqcubes sumquad divisors isprime modmult testmodmult prod division
+WASM_ID ?= 0000
+ifeq ($(OS),Windows_NT)
+WASM_BUILD_CMD = cmd /c a.bat $(WASM_ID)
+WASM_END_CMD = cmd /c a.bat $(WASM_ID) end
+else
+WASM_BUILD_CMD = ./a.sh $(WASM_ID)
+WASM_END_CMD = ./a.sh $(WASM_ID) end
+endif
 .PHONY : all
 all: $(targets)
 
@@ -138,3 +146,9 @@ polfact: $(polfact_files) $(h_files)
 clean:
 	rm -f *.gcda *.gcno *.gcov $(targets)
 
+.PHONY : wasm wasm-end
+wasm:
+	$(WASM_BUILD_CMD)
+
+wasm-end:
+	$(WASM_END_CMD)

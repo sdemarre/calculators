@@ -35,6 +35,21 @@ All calculators can process expressions.
 
 If you run the calculator without command line parameters, the program will show the expected arguments.
 
+### WebAssembly build
+
+The WebAssembly builds are driven by Emscripten and the Closure Compiler. Use the platform-appropriate scripts (you can run them directly, or via the Makefile targets):
+
+- Linux/macOS: ``make wasm`` (uses ``./a.sh``), or run directly: ``./a.sh 0000``.
+- Windows: ``make wasm`` works if you run GNU make in an environment that sets ``OS=Windows_NT`` (or pass it explicitly), otherwise run ``a.bat 0000`` directly.
+
+Environment variables:
+
+- ``EMSDK`` (optional): path to your emsdk root; used to locate ``compiler.jar``.
+- ``CLOSURE_COMPILER_JAR`` (optional): full path to ``compiler.jar``; overrides ``EMSDK`` lookup.
+- ``WASM_ID`` (optional): cache-busting build id inserted into HTML (defaults to ``0000``).
+
+The scripts also call ``w.sh``/``w.bat`` for the graphical apps and ``a1.sh``/``a1.bat`` for the final packaging step.
+
 ### Static code analysis
 
 Software quality assurance is realized with the coverage test explained in the previous section and static analysis. The latter is done by tools that scan the source code. The programs do not run in this case.
