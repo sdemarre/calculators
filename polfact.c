@@ -142,9 +142,9 @@ void polyFactText(const char *modText, const char *polyText, int groupLength)
   modulusIsZero = false;
   if (pretty == PRETTY_PRINT)
   {
-    ptrTimes = "&#8290;";
-    ptrMinus = "&minus;";
-    ptrPlusMinus = " &pm; ";
+    ptrTimes = "<mo>&InvisibleTimes;</mo>";
+    ptrMinus = "<mo>&minus;</mo>";
+    ptrPlusMinus = "<mo>&plusmn;</mo>";
   }
   else
   {
@@ -210,7 +210,15 @@ void polyFactText(const char *modText, const char *polyText, int groupLength)
       {
         copyStr(&ptrOutput, "<p id=\"pol\">");
       }
+      if (pretty == PRETTY_PRINT)
+      {
+        copyStr(&ptrOutput, "<math><mrow>");
+      }
       outputOriginalPolynomial(&ptrOutput, groupLength);
+      if (pretty == PRETTY_PRINT)
+      {
+        copyStr(&ptrOutput, "</mrow></math>");
+      }
       copyStr(&ptrOutput, "</p>");
       if (!onlyEvaluate)
       {
@@ -300,9 +308,24 @@ void polyFactText(const char *modText, const char *polyText, int groupLength)
         if (!BigIntIsOne(&operand5) || (nbrFactorsFound == 0))
         {     // Leading coefficient is not 1 or degree is zero.
           showText("<li>");
+          if (pretty == PRETTY_PRINT)
+          {
+            copyStr(&ptrOutput, "<math><mrow>");
+          }
           if (operand5.sign == SIGN_NEGATIVE)
           {
-            copyStr(&ptrOutput, " &minus;");
+            if (pretty == PRETTY_PRINT)
+            {
+              copyStr(&ptrOutput, "<mo>&minus;</mo>");
+            }
+            else
+            {
+              copyStr(&ptrOutput, " -");
+            }
+          }
+          if (pretty == PRETTY_PRINT)
+          {
+            copyStr(&ptrOutput, "<mn>");
           }
           if (pretty == PRETTY_PRINT)
           {          // Show number of digits if there are more than 30.
@@ -312,11 +335,20 @@ void polyFactText(const char *modText, const char *polyText, int groupLength)
           {         // Do not show number of digits.
             Bin2Dec(&ptrOutput, operand5.limbs, operand1.nbrLimbs, -groupLength);
           }
+          if (pretty == PRETTY_PRINT)
+          {
+            copyStr(&ptrOutput, "</mn>");
+            copyStr(&ptrOutput, "</mrow></math>");
+          }
           showText("</li>");
         }
         for (nbrFactor = 0; nbrFactor < nbrFactorsFound; nbrFactor++)
         {
           showText("<li>");
+          if (pretty == PRETTY_PRINT)
+          {
+            copyStr(&ptrOutput, "<math><mrow>");
+          }
           if (pretty == TEX)
           {
             showText("\\bullet\\,\\,");
@@ -325,6 +357,10 @@ void polyFactText(const char *modText, const char *polyText, int groupLength)
           if (pretty == TEX)
           {
             showText("\\\\");
+          }
+          if (pretty == PRETTY_PRINT)
+          {
+            copyStr(&ptrOutput, "</mrow></math>");
           }
           showText("</li>");
           pstFactorInfo++;

@@ -412,9 +412,9 @@ void ShowRationalAndSqrParts(const BigRational* RatPart, const BigRational* SqrP
       {
         if (pretty == PRETTY_PRINT)
         {
-          showText("<r-2><r-a>");
+          showText("<msqrt><mrow>");
           showRational(RatPart);
-          showText("</r-a></r-2>");
+          showText("</mrow></msqrt>");
         }
         else if (pretty == TEX)
         {
@@ -428,30 +428,21 @@ void ShowRationalAndSqrParts(const BigRational* RatPart, const BigRational* SqrP
           showText("^(1/2)");
         }
       }
-      if (pretty == PRETTY_PRINT)
-      {
-        *ptrOutput = ' ';
-        ptrOutput++;
-      }
+      // MathML uses operator tokens; no extra spacing needed.
       showText(pTimes);
-      if (pretty == PRETTY_PRINT)
-      {
-        *ptrOutput = ' ';
-        ptrOutput++;
-      }
     }
     else
     {     // Absolute value of rational part is 1.
       if (RatPart->numerator.sign == SIGN_NEGATIVE)
       {   // Rational part is 1. Show negative sign.
-        showText((pretty == PRETTY_PRINT)? "&minus;": "-");
+        showText((pretty == PRETTY_PRINT)? "<mo>&minus;</mo>": "-");
       }
     }
     if (pretty == PRETTY_PRINT)
     {
       if (root == 2)
       {
-        showText("<r-2><r-a>");
+        showText("<msqrt><mrow>");
       }
       else
       {
@@ -460,7 +451,7 @@ void ShowRationalAndSqrParts(const BigRational* RatPart, const BigRational* SqrP
       showRational(SqrPart);
       if (root == 2)
       {
-        showText("</r-a></r-2>");
+        showText("</mrow></msqrt>");
       }
       else
       {
@@ -511,12 +502,26 @@ void showPlusMinusRational(BigRational* rat)
   ForceDenominatorPositive(rat);
   if (rat->numerator.sign == SIGN_POSITIVE)
   {
-    showText(" + ");
+    if (pretty == PRETTY_PRINT)
+    {
+      showText("<mo>+</mo>");
+    }
+    else
+    {
+      showText(" + ");
+    }
     showRational(rat);
   }
   else
   {
-    showText(pretty == PRETTY_PRINT? " &minus; ": " - ");
+    if (pretty == PRETTY_PRINT)
+    {
+      showText("<mo>&minus;</mo>");
+    }
+    else
+    {
+      showText(" - ");
+    }
     BigIntChSign(&rat->numerator);
     showRational(rat);
     BigIntChSign(&rat->numerator);

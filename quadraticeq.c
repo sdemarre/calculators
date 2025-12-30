@@ -100,20 +100,36 @@ void stepsForQuadraticEquation(char origVar, char substVar)
   }
   BigIntChSign(&Rat4.numerator);
   showText("<p>");
+  if (pretty == PRETTY_PRINT)
+  {
+    showText("<math><mrow>");
+  }
   showVariable(&ptrOutput, currVar);
   if (pretty == TEX)
   {
     showText(" = \\pm");
+  }
+  else if (pretty == PRETTY_PRINT)
+  {
+    showText("<mo>=</mo><mo>&plusmn;</mo>");
   }
   else
   {
     showText(" = &pm;");
   }
   showSquareRootOfRational(&Rat4, 2, ptrTimes);
+  if (pretty == PRETTY_PRINT)
+  {
+    showText("</mrow></math>");
+  }
   showText("</p>");
   if (currVar != origVar)
   {
     showText("<p>");
+    if (pretty == PRETTY_PRINT)
+    {
+      showText("<math><mrow>");
+    }
     showVariable(&ptrOutput, origVar);
     BigIntChSign(&Rat2.numerator);
     showPlusMinusRational(&Rat2);
@@ -121,11 +137,19 @@ void stepsForQuadraticEquation(char origVar, char substVar)
     {
       showText(" = \\pm");
     }
+    else if (pretty == PRETTY_PRINT)
+    {
+      showText("<mo>=</mo><mo>&plusmn;</mo>");
+    }
     else
     {
       showText(" = &pm;");
     }
     showSquareRootOfRational(&Rat4, 2, ptrTimes);
+    if (pretty == PRETTY_PRINT)
+    {
+      showText("</mrow></math>");
+    }
     showText("</p>");
   }
 }

@@ -182,10 +182,10 @@ void showVariable(char **pptrOutput, char letter)
   char* ptrOut = *pptrOutput;
   if (pretty == PRETTY_PRINT)
   {
-    copyStr(&ptrOut, "<var>");
+    copyStr(&ptrOut, "<mi>");
     *ptrOut = letter;
     ptrOut++;
-    copyStr(&ptrOut, "</var>");
+    copyStr(&ptrOut, "</mi>");
   }
   else
   {
@@ -199,12 +199,12 @@ void showVarIndex(char letter, int index)
 {
   if (pretty == PRETTY_PRINT)
   {
-    showText("<var>");
+    showText("<msub><mi>");
     *ptrOutput = letter;
     ptrOutput++;
-    showText("</var><sub>");
+    showText("</mi><mn>");
     int2dec(&ptrOutput, index);
-    showText("</sub>");
+    showText("</mn></msub>");
   }
   else if (pretty == TEX)
   {
@@ -237,6 +237,10 @@ void showX(int multiplicity)
   {
     startLine();
   }
+  if (pretty == PRETTY_PRINT)
+  {
+    showText("<math><mrow>");
+  }
   if (multiplicity > 2)
   {
     char from[1000];
@@ -260,13 +264,24 @@ void showX(int multiplicity)
     {
       showXindex(indexRoot);
       indexRoot++;
-      showText(" = ");
+      if (pretty == PRETTY_PRINT)
+      {
+        showText("<mo>=</mo>");
+      }
+      else
+      {
+        showText(" = ");
+      }
     }
   }
 }
 
 void endShowX(void)
 {
+  if (pretty == PRETTY_PRINT)
+  {
+    showText("</mrow></math>");
+  }
   if (teach)
   {
     showText("</p></div></div>");
@@ -281,7 +296,7 @@ void startSqrt(void)
 {
   if (pretty == PRETTY_PRINT)
   {
-    showText("<r-2><r-a>");
+    showText("<msqrt><mrow>");
   }
   else if (pretty == TEX)
   {
@@ -297,7 +312,7 @@ void endSqrt(void)
 {
   if (pretty == PRETTY_PRINT)
   {
-    showText("</r-a></r-2>");
+    showText("</mrow></msqrt>");
   }
   else if (pretty == TEX)
   {
@@ -843,7 +858,7 @@ static void AdjustComponent(int denominator, char* ptrStart, enum toShow toShow,
   }
   if (denomin < 0)
   {
-    copyStr(&ptrBeginning, (pretty == PRETTY_PRINT)? "&minus;" : "-");
+    copyStr(&ptrBeginning, (pretty == PRETTY_PRINT)? "<mo>&minus;</mo>" : "-");
     denomin = -denomin;    // Make it positive.
   }
   else if ((toShow == SHOW_IMAG) || (isFirst == 0))
@@ -1744,7 +1759,7 @@ static bool isSymmetricOrAlternating(int nbrFactor, const int* ptrPolynomial,
     showExplanation(cyclePrGtNOver2ToLess2Found, "&gt;", degree, "&divide;", 2);
     // and less than the degree minus 2
     showText(LITERAL_SYMM_OR_ALTER5);
-    showExplanation(cyclePrGtNOver2ToLess2Found, "&lt;", degree, "&minus;", 2);
+    showExplanation(cyclePrGtNOver2ToLess2Found, "&lt;", degree, "<mo>&minus;</mo>", 2);
     *ptrOutput = ')';
     ptrOutput++;
   }
@@ -1804,18 +1819,9 @@ void getRootsPolynomial(int nbrFactor, char **pptrOutput, struct sFactorInfo* ps
   int multiplicity = pstFactorInfo->multiplicity;
   if (pretty == PRETTY_PRINT)
   {
-    char *ptr = Sine;
-    formatString(&ptr, "<span role=\"img\" aria-label=\" $1s \">sin</span>",
-      LITERAL_SINE);
-    ptrSin = Sine;
-    ptr = Cosine;
-    formatString(&ptr, "<span role=\"img\" aria-label=\" $1s \">cos</span>",
-      LITERAL_COSINE);
-    ptrCos = Cosine;
-    ptr = ArcCosine;
-    formatString(&ptr, "<span role=\"img\" aria-label=\" $1s \">arc cos</span>",
-      LITERAL_ARC_COSINE);
-    ptrACos = ArcCosine;
+    ptrSin = "<mi>sin</mi>";
+    ptrCos = "<mi>cos</mi>";
+    ptrACos = "<mi>arccos</mi>";
   }
   else if (pretty == TEX)
   {
@@ -1833,15 +1839,11 @@ void getRootsPolynomial(int nbrFactor, char **pptrOutput, struct sFactorInfo* ps
   ptrOutput = *pptrOutput;
   if (pretty == PRETTY_PRINT)
   {
-    ptrMinus = "&minus;";
-    ptrTimes = "<o-t></o-t>";
-    ptrTimesPi = TimesPi;
-    char* pTimesPi = TimesPi;
-    formatString(&pTimesPi, "<span role=\"img\" aria-label=\" $1s\">π</span>",
-      LITERAL_TIMES_PI);
-    ptrTimesPi = TimesPi;
-    ptrPi = "<span role=\"img\" aria-label=\"pi\">π</span>";
-    ptrI = "i";
+    ptrMinus = "<mo>&minus;</mo>";
+    ptrTimes = "<mo>&InvisibleTimes;</mo>";
+    ptrTimesPi = "<mo>&InvisibleTimes;</mo><mi>&pi;</mi>";
+    ptrPi = "<mi>&pi;</mi>";
+    ptrI = "<mi>i</mi>";
   }
   else if (pretty == TEX)
   {
@@ -1862,8 +1864,20 @@ void getRootsPolynomial(int nbrFactor, char **pptrOutput, struct sFactorInfo* ps
     startLine();
     // The equation to solve is:
     formatString(&ptrOutput, "<p>$1s</p><p>", LITERAL_GET_ROOTS_POLY1);
+    if (pretty == PRETTY_PRINT)
+    {
+      copyStr(&ptrOutput, "<math><mrow>");
+    }
     outputPolynomialFactor(&ptrOutput, groupLength, pstFactorInfo);
-    showText(" = 0</p>");
+    if (pretty == PRETTY_PRINT)
+    {
+      copyStr(&ptrOutput, "<mo>=</mo><mn>0</mn></mrow></math>");
+      showText("</p>");
+    }
+    else
+    {
+      showText(" = 0</p>");
+    }
   }
   switch (pstFactorInfo->degree)
   {

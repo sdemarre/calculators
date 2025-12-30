@@ -43,6 +43,51 @@ static BigInteger biSecondTerm;
 extern limb TestNbr[MAX_LEN];
 extern limb MontgomeryMultR1[MAX_LEN];
 
+static void mathStart(char** pptrOutput)
+{
+  copyStr(pptrOutput, "<math><mrow>");
+}
+
+static void mathEnd(char** pptrOutput)
+{
+  copyStr(pptrOutput, "</mrow></math>");
+}
+
+static void mathMo(char** pptrOutput, const char* op)
+{
+  copyStr(pptrOutput, "<mo>");
+  copyStr(pptrOutput, op);
+  copyStr(pptrOutput, "</mo>");
+}
+
+static void mathMnBig(char** pptrOutput, const BigInteger* value)
+{
+  copyStr(pptrOutput, "<mn>");
+  if (hexadecimal)
+  {
+    BigInteger2Hex(pptrOutput, value, groupLength);
+  }
+  else
+  {
+    BigInteger2Dec(pptrOutput, value, groupLength);
+  }
+  copyStr(pptrOutput, "</mn>");
+}
+
+static void mathSquaredBig(char** pptrOutput, const BigInteger* value)
+{
+  copyStr(pptrOutput, "<msup><mn>");
+  if (hexadecimal)
+  {
+    BigInteger2Hex(pptrOutput, value, groupLength);
+  }
+  else
+  {
+    BigInteger2Dec(pptrOutput, value, groupLength);
+  }
+  copyStr(pptrOutput, "</mn><mn>2</mn></msup>");
+}
+
  // If Mult1 < Mult2, exchange both numbers.
 static void SortBigNbrs(BigInteger *pbiMult1, BigInteger *pbiMult2)
 {   // biFirstTerm not used at this time. Use it as temp variable.
@@ -183,15 +228,12 @@ int fsquares(void)
 #ifdef __EMSCRIPTEN__
     // Show number to be processed on screen.
     ptrOutput = tmpOutput;
-    copyStr(&ptrOutput, "1<p><var>n</var> = ");
-    if (hexadecimal)
-    {
-      Bin2Hex(&ptrOutput, biSecondTerm.limbs, biSecondTerm.nbrLimbs, groupLength);
-    }
-    else
-    {
-      Bin2Dec(&ptrOutput, biSecondTerm.limbs, biSecondTerm.nbrLimbs, groupLength);
-    }
+    copyStr(&ptrOutput, "1<p>");
+    mathStart(&ptrOutput);
+    copyStr(&ptrOutput, "<mi>n</mi>");
+    mathMo(&ptrOutput, "=");
+    mathMnBig(&ptrOutput, &biSecondTerm);
+    mathEnd(&ptrOutput);
     copyStr(&ptrOutput, "</p>");
     databack(tmpOutput);
 #endif
@@ -266,14 +308,9 @@ static void batchSquaresCallback(char **pptrOutput, int type)
   if (type == BATCH_NO_QUOTE)
   {
     copyStr(&ptrOutput, "<p>");
-    if (hexadecimal)
-    {
-      BigInteger2Hex(&ptrOutput, &toProcess, groupLength);
-    }
-    else
-    {
-      BigInteger2Dec(&ptrOutput, &toProcess, groupLength);
-    }
+    mathStart(&ptrOutput);
+    mathMnBig(&ptrOutput, &toProcess);
+    mathMo(&ptrOutput, "=");
   }
   if (toProcess.sign == SIGN_NEGATIVE)
   {
@@ -309,58 +346,90 @@ static void batchSquaresCallback(char **pptrOutput, int type)
   // Show the decomposition.
   if (type == BATCH_NO_QUOTE)
   {
-    copyStr(&ptrOutput, " = ");
-  }
-  if (hexadecimal)
-  {
-    Bin2Hex(&ptrOutput, biMult1.limbs, biMult1.nbrLimbs, groupLength);
-  }
-  else
-  {
-    Bin2Dec(&ptrOutput, biMult1.limbs, biMult1.nbrLimbs, groupLength);
-  }
-  copyStr(&ptrOutput, square);
-  if (!BigIntIsZero(&biMult2))
-  {
-    copyStr(&ptrOutput, " + ");
-    if (hexadecimal)
-    {
-      Bin2Hex(&ptrOutput, biMult2.limbs, biMult2.nbrLimbs, groupLength);
-    }
-    else
-    {
-      Bin2Dec(&ptrOutput, biMult2.limbs, biMult2.nbrLimbs, groupLength);
-    }
-    copyStr(&ptrOutput, square);
-  }
-  if (!BigIntIsZero(&biMult3))
-  {
-    copyStr(&ptrOutput, " + ");
-    if (hexadecimal)
-    {
-      Bin2Hex(&ptrOutput, biMult3.limbs, biMult3.nbrLimbs, groupLength);
-    }
-    else
-    {
-      Bin2Dec(&ptrOutput, biMult3.limbs, biMult3.nbrLimbs, groupLength);
-    }
-    copyStr(&ptrOutput, square);
-  }
-  if (!BigIntIsZero(&biMult4))
-  {
-    copyStr(&ptrOutput, " + ");
-    if (hexadecimal)
-    {
-      Bin2Hex(&ptrOutput, biMult4.limbs, biMult4.nbrLimbs, groupLength);
-    }
-    else
-    {
-      Bin2Dec(&ptrOutput, biMult4.limbs, biMult4.nbrLimbs, groupLength);
-    }
-    copyStr(&ptrOutput, square);
+    // Right-hand side is already started in MathML.
   }
   if (type == BATCH_NO_QUOTE)
   {
+    mathSquaredBig(&ptrOutput, &biMult1);
+  }
+  else
+  {
+    if (hexadecimal)
+    {
+      Bin2Hex(&ptrOutput, biMult1.limbs, biMult1.nbrLimbs, groupLength);
+    }
+    else
+    {
+      Bin2Dec(&ptrOutput, biMult1.limbs, biMult1.nbrLimbs, groupLength);
+    }
+    copyStr(&ptrOutput, "^2");
+  }
+  if (!BigIntIsZero(&biMult2))
+  {
+    if (type == BATCH_NO_QUOTE)
+    {
+      mathMo(&ptrOutput, "+");
+      mathSquaredBig(&ptrOutput, &biMult2);
+    }
+    else
+    {
+      copyStr(&ptrOutput, " + ");
+      if (hexadecimal)
+      {
+        Bin2Hex(&ptrOutput, biMult2.limbs, biMult2.nbrLimbs, groupLength);
+      }
+      else
+      {
+        Bin2Dec(&ptrOutput, biMult2.limbs, biMult2.nbrLimbs, groupLength);
+      }
+      copyStr(&ptrOutput, "^2");
+    }
+  }
+  if (!BigIntIsZero(&biMult3))
+  {
+    if (type == BATCH_NO_QUOTE)
+    {
+      mathMo(&ptrOutput, "+");
+      mathSquaredBig(&ptrOutput, &biMult3);
+    }
+    else
+    {
+      copyStr(&ptrOutput, " + ");
+      if (hexadecimal)
+      {
+        Bin2Hex(&ptrOutput, biMult3.limbs, biMult3.nbrLimbs, groupLength);
+      }
+      else
+      {
+        Bin2Dec(&ptrOutput, biMult3.limbs, biMult3.nbrLimbs, groupLength);
+      }
+      copyStr(&ptrOutput, "^2");
+    }
+  }
+  if (!BigIntIsZero(&biMult4))
+  {
+    if (type == BATCH_NO_QUOTE)
+    {
+      mathMo(&ptrOutput, "+");
+      mathSquaredBig(&ptrOutput, &biMult4);
+    }
+    else
+    {
+      copyStr(&ptrOutput, " + ");
+      if (hexadecimal)
+      {
+        Bin2Hex(&ptrOutput, biMult4.limbs, biMult4.nbrLimbs, groupLength);
+      }
+      else
+      {
+        Bin2Dec(&ptrOutput, biMult4.limbs, biMult4.nbrLimbs, groupLength);
+      }
+      copyStr(&ptrOutput, "^2");
+    }
+  }
+  if (type == BATCH_NO_QUOTE)
+  {
+    mathEnd(&ptrOutput);
     copyStr(&ptrOutput, "</p>");
   }
   *pptrOutput = ptrOutput;
