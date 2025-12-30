@@ -23,8 +23,8 @@ mkdir -p toweb assets
 compiler_options2=(--compilation_level ADVANCED_OPTIMIZATIONS --isolation_mode IIFE --externs=custom-externs.js)
 wasm_common=(--no-entry -Os -Wall -s WASM=1 -D_USING64BITS_ -s ASSERTIONS=0 -s NO_FILESYSTEM=1 --js-library lib.js --pre-js pre.js)
 
-"$emcc_cmd" "${wasm_common[@]}" ulam.c isprime.c MontMultGraphic.c graphics.c copyStr.c -s "EXPORTED_FUNCTIONS=['_initUlam','_moveGraphic','_drawPartialGraphic','_nbrChanged','_getInformation','_getPixels']" -s TOTAL_MEMORY=33554432 -o ulam.wasm
-"$emcc_cmd" "${wasm_common[@]}" gausspr.c isprime.c MontMultGraphic.c graphics.c -s "EXPORTED_FUNCTIONS=['_initGaussPr','_moveGraphic','_drawPartialGraphic','_nbrChanged','_getInformation','_getPixels']" -s TOTAL_MEMORY=33554432 -o gausspr.wasm
+"$emcc_cmd" "${wasm_common[@]}" ulam.c isprime.c MontMultGraphic.c graphics.c copyStr.c -s "EXPORTED_FUNCTIONS=['_initUlam','_moveGraphic','_drawPartialGraphic','_nbrChanged','_getInformation','_getPixels']" -s TOTAL_MEMORY=67108864 -o ulam.wasm
+"$emcc_cmd" "${wasm_common[@]}" gausspr.c isprime.c MontMultGraphic.c graphics.c -s "EXPORTED_FUNCTIONS=['_initGaussPr','_moveGraphic','_drawPartialGraphic','_nbrChanged','_getInformation','_getPixels']" -s TOTAL_MEMORY=67108864 -o gausspr.wasm
 
 cat ulam.js common.js strings.js commonGraphics.js > ulamT.js
 java -jar "$compiler_jar" "${compiler_options2[@]}" --js ulamT.js --js initGraphicNoAndroid.js --js_output_file ulamU.js

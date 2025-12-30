@@ -40,7 +40,7 @@ common_flags_extra=()
 if [[ -n "${COMMON_FLAGS:-}" ]]; then
   read -r -a common_flags_extra <<< "${COMMON_FLAGS}"
 fi
-js_common=("${common_link_flags[@]}" -s WASM=0 -s SINGLE_FILE=1 -s TEXTDECODER=0 "-s INCOMING_MODULE_JS_API=['preRun','noInitialRun']" -s WASM_ASYNC_COMPILATION=0 "-s ENVIRONMENT=worker" --closure 1 --memory-init-file 0 obj.o)
+js_common=("${common_link_flags[@]}" -s WASM=0 -s SINGLE_FILE=1 -s TEXTDECODER=1 "-s INCOMING_MODULE_JS_API=['preRun','noInitialRun']" -s WASM_ASYNC_COMPILATION=0 "-s ENVIRONMENT=worker" --closure 1 --memory-init-file 0 obj.o)
 wasm_common=("${common_link_flags[@]}" -s WASM=1 "${common_flags_extra[@]}" -D_USING64BITS_ obj.o)
 
 rm -f *.wasm *00*js
@@ -125,8 +125,8 @@ compile_lang es
 
 java -jar "$compiler_jar" "${compiler_options[@]}" --js intfwebw.js --js commonwebw.js --js_output_file intWW.js
 
-java -jar "$compiler_jar" -Dapp=0 "${compiler_options[@]}" --js cache.js --js calccode.js "${fsquares_js[@]}" --js worker.js --js_output_file WebGlue.js
-java -jar "$compiler_jar" -Dapp=0 "${compiler_options_and[@]}" "${fsquares_js[@]}" --js workerAndroid.js --js_output_file AndroidGlue.js
+java -jar "$compiler_jar" "${compiler_options[@]}" --define=app=0 --js cache.js --js calccode.js "${fsquares_js[@]}" --js worker.js --js_output_file WebGlue.js
+java -jar "$compiler_jar" "${compiler_options_and[@]}" --define=app=0 "${fsquares_js[@]}" --js workerAndroid.js --js_output_file AndroidGlue.js
 generate_glue_code_subr() {
   local html_en=$1
   local asset_en=$2
@@ -148,27 +148,27 @@ generate_glue_code_subr() {
 
 generate_glue_code_subr FSQUARES.HTM fsquares.html SUMCUAD.HTM sumcuad.html fsquares
 
-java -jar "$compiler_jar" -Dapp=2 "${compiler_options[@]}" --js cache.js --js calccode.js "${fsquares_js[@]}" --js worker.js --js_output_file WebGlue.js
-java -jar "$compiler_jar" -Dapp=2 "${compiler_options_and[@]}" "${fsquares_js[@]}" --js workerAndroid.js --js_output_file AndroidGlue.js
+java -jar "$compiler_jar" "${compiler_options[@]}" --define=app=2 --js cache.js --js calccode.js "${fsquares_js[@]}" --js worker.js --js_output_file WebGlue.js
+java -jar "$compiler_jar" "${compiler_options_and[@]}" --define=app=2 "${fsquares_js[@]}" --js workerAndroid.js --js_output_file AndroidGlue.js
 generate_glue_code_subr FCUBES.HTM fcubes.html SUMCUBOS.HTM sumcubos.html fcubes
 
-java -jar "$compiler_jar" -Dapp=4 "${compiler_options[@]}" --js cache.js --js calccode.js "${fsquares_js[@]}" --js worker.js --js_output_file WebGlue.js
-java -jar "$compiler_jar" -Dapp=4 "${compiler_options_and[@]}" "${fsquares_js[@]}" --js workerAndroid.js --js_output_file AndroidGlue.js
+java -jar "$compiler_jar" "${compiler_options[@]}" --define=app=4 --js cache.js --js calccode.js "${fsquares_js[@]}" --js worker.js --js_output_file WebGlue.js
+java -jar "$compiler_jar" "${compiler_options_and[@]}" --define=app=4 "${fsquares_js[@]}" --js workerAndroid.js --js_output_file AndroidGlue.js
 generate_glue_code_subr CONTFRAC.HTM contfrac.html FRACCONT.HTM fraccont.html contfrac
 
-java -jar "$compiler_jar" -Dapp=6 "${compiler_options[@]}" --js cache.js --js calccode.js "${fsquares_js[@]}" --js worker.js --js_output_file WebGlue.js
-java -jar "$compiler_jar" -Dapp=6 "${compiler_options_and[@]}" "${fsquares_js[@]}" --js workerAndroid.js --js_output_file AndroidGlue.js
+java -jar "$compiler_jar" "${compiler_options[@]}" --define=app=6 --js cache.js --js calccode.js "${fsquares_js[@]}" --js worker.js --js_output_file WebGlue.js
+java -jar "$compiler_jar" "${compiler_options_and[@]}" --define=app=6 "${fsquares_js[@]}" --js workerAndroid.js --js_output_file AndroidGlue.js
 generate_glue_code_subr TSQCUBES.HTM tsqcubes.html TCUADCUB.HTM tcuadcub.html tsqcubes
 
 java -jar "$compiler_jar" "${compiler_options[@]}" --js ecmfwebw.js --js commonwebw.js --js_output_file intWW.js
 
-java -jar "$compiler_jar" -Dandroid=0 "${compiler_options[@]}" --js cache.js --js calccode.js "${polfact_js[@]}" --js worker.js --js_output_file WebGlue.js
-java -jar "$compiler_jar" -Dandroid=1 "${compiler_options_and[@]}" "${polfact_js[@]}" --js workerAndroid.js --js_output_file AndroidGlue.js
+java -jar "$compiler_jar" "${compiler_options[@]}" --define=android=0 --js cache.js --js calccode.js "${polfact_js[@]}" --js worker.js --js_output_file WebGlue.js
+java -jar "$compiler_jar" "${compiler_options_and[@]}" --define=android=1 "${polfact_js[@]}" --js workerAndroid.js --js_output_file AndroidGlue.js
 generate_glue_code_subr POLFACT.HTM polfact.html FACTPOL.HTM factpol.html polfact
 
 java -jar "$compiler_jar" "${compiler_options[@]}" --js cache.js --js calccode.js "${dilog_js[@]}" --js worker.js --js_output_file WebGlue.js
 java -jar "$compiler_jar" "${compiler_options_and[@]}" "${dilog_js[@]}" --js workerAndroid.js --js_output_file AndroidGlue.js
-generate_glue_code_subr DILOG.HTM dilog.html LOGDI.HTM logdi.html dilog
+generate_glue_code_subr dilog.htm dilog.html logdi.htm logdi.html dilog
 
 java -jar "$compiler_jar" "${compiler_options[@]}" --js cache.js --js calccode.js "${quadmod_js[@]}" --js worker.js --js_output_file WebGlue.js
 java -jar "$compiler_jar" "${compiler_options_and[@]}" "${quadmod_js[@]}" --js workerAndroid.js --js_output_file AndroidGlue.js
