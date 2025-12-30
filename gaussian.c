@@ -47,6 +47,40 @@ static void showText(const char *text)
   copyStr(&ptrOutput, text);
 }
 
+static void Bin2Out(char** ppDecimal, const limb* binary, int nbrLimbs, int groupLength);
+
+static void mathStart(void)
+{
+  copyStr(&ptrOutput, "<math><mrow>");
+}
+
+static void mathEnd(void)
+{
+  copyStr(&ptrOutput, "</mrow></math>");
+}
+
+static void mathMo(const char *op)
+{
+  copyStr(&ptrOutput, "<mo>");
+  copyStr(&ptrOutput, op);
+  copyStr(&ptrOutput, "</mo>");
+}
+
+static void mathMi(char letter)
+{
+  copyStr(&ptrOutput, "<mi>");
+  *ptrOutput = letter;
+  ptrOutput++;
+  copyStr(&ptrOutput, "</mi>");
+}
+
+static void mathMnLimbs(const BigInteger *value)
+{
+  copyStr(&ptrOutput, "<mn>");
+  Bin2Out(&ptrOutput, value->limbs, value->nbrLimbs, groupLen);
+  copyStr(&ptrOutput, "</mn>");
+}
+
 static void Bin2Out(char** ppDecimal, const limb* binary, int nbrLimbs, int groupLength)
 {
   if (hexadecimal)
@@ -61,28 +95,31 @@ static void Bin2Out(char** ppDecimal, const limb* binary, int nbrLimbs, int grou
 
 static void showNumber(const BigInteger *real, const BigInteger *imag)
 {
+  mathStart();
   if (real->sign == SIGN_NEGATIVE)
   {
-    showText("-");
+    mathMo("&minus;");
   }
-  Bin2Out(&ptrOutput, real->limbs, real->nbrLimbs, groupLen);
+  mathMnLimbs(real);
   if (imag->sign == SIGN_POSITIVE)
   {
-    showText(" + ");
+    mathMo("+");
   }
   else
   {
-    showText(" - ");
+    mathMo("&minus;");
   }
   if (imag->nbrLimbs == 1 && imag->limbs[0].x == 1)
   {   // Imaginary part is 1 or -1.
-    showText("i");
+    mathMi('i');
   }
   else
   {
-    Bin2Out(&ptrOutput, imag->limbs, imag->nbrLimbs, groupLen);
-    showText(" i");
+    mathMnLimbs(imag);
+    mathMo("&InvisibleTimes;");
+    mathMi('i');
   }
+  mathEnd();
 }
 
 void GaussianFactorization(void)
@@ -114,11 +151,19 @@ void GaussianFactorization(void)
     char *ptrFactorDec = tofactorDec;
     NumberLength = tofactor.nbrLimbs;
     BigInteger2IntArray(nbrToFactor, &tofactor);
-    copyStr(&ptrFactorDec, "Re&sup2; + Im&sup2; = ");
+    copyStr(&ptrFactorDec, "<math><mrow>");
+    copyStr(&ptrFactorDec, "<msup><mi>Re</mi><mn>2</mn></msup>");
+    copyStr(&ptrFactorDec, "<mo>+</mo>");
+    copyStr(&ptrFactorDec, "<msup><mi>Im</mi><mn>2</mn></msup>");
+    copyStr(&ptrFactorDec, "<mo>=</mo>");
+    copyStr(&ptrFactorDec, "<msup><mn>");
     Bin2Out(&ptrFactorDec, ReValue.limbs, ReValue.nbrLimbs, groupLen);
-    copyStr(&ptrFactorDec, "&sup2; + ");
+    copyStr(&ptrFactorDec, "</mn><mn>2</mn></msup>");
+    copyStr(&ptrFactorDec, "<mo>+</mo>");
+    copyStr(&ptrFactorDec, "<msup><mn>");
     Bin2Out(&ptrFactorDec, ImValue.limbs, ImValue.nbrLimbs, groupLen);
-    copyStr(&ptrFactorDec, "&sup2;");
+    copyStr(&ptrFactorDec, "</mn><mn>2</mn></msup>");
+    copyStr(&ptrFactorDec, "</mrow></math>");
     factor(&tofactor, nbrToFactor, factorsNorm, astFactorsNorm);
     NbrFactorsNorm = astFactorsNorm[0].multiplicity;
     pstFactor = &astFactorsNorm[1];

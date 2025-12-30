@@ -1203,9 +1203,27 @@ void SendFactorizationToOutput(const struct sFactors *pstFactors, char **pptrOut
   bool doFactorization, bool onlyFactor)
 {
   char *ptrOutput = *pptrOutput;
-  copyStr(&ptrOutput, tofactorDec);
+  bool useMath = doFactorization;
+  if (useMath)
+  {
+    copyStr(&ptrOutput, "<math><mrow><mn>");
+    if (hexadecimal)
+    {
+      Bin2Hex(&ptrOutput, tofactor.limbs, tofactor.nbrLimbs, groupLen);
+    }
+    else
+    {
+      Bin2Dec(&ptrOutput, tofactor.limbs, tofactor.nbrLimbs, groupLen);
+    }
+    copyStr(&ptrOutput, "</mn>");
+  }
+  else
+  {
+    copyStr(&ptrOutput, tofactorDec);
+  }
   if (!doFactorization)
   {
+    *pptrOutput = ptrOutput;
     return;
   }
   const struct sFactors *pstFactor;
@@ -1221,15 +1239,33 @@ void SendFactorizationToOutput(const struct sFactors *pstFactors, char **pptrOut
   int i = 0;
   if (!onlyFactor)
   {
-    copyStr(&ptrOutput, " = ");
+    if (useMath)
+    {
+      copyStr(&ptrOutput, "<mo>=</mo>");
+    }
+    else
+    {
+      copyStr(&ptrOutput, " = ");
+    }
   }
   if (tofactor.sign == SIGN_NEGATIVE)
   {
-    *ptrOutput = '-';
-    ptrOutput++;
+    if (useMath)
+    {
+      copyStr(&ptrOutput, "<mo>&minus;</mo>");
+    }
+    else
+    {
+      *ptrOutput = '-';
+      ptrOutput++;
+    }
     if ((tofactor.nbrLimbs > 1) || (tofactor.limbs[0].x > 1))
     {
-      if (prettyprint)
+      if (useMath)
+      {
+        copyStr(&ptrOutput, "<mn>1</mn><mo>&times;</mo>");
+      }
+      else if (prettyprint)
       {
         copyStr(&ptrOutput, "1 &times; ");
       }
@@ -1243,27 +1279,59 @@ void SendFactorizationToOutput(const struct sFactors *pstFactors, char **pptrOut
   {
     NumberLength = *pstFactor->ptrFactor;
     IntArray2BigInteger(pstFactor->ptrFactor, &factorValue);
-    if (hexadecimal)
+    if (useMath)
     {
-      Bin2Hex(&ptrOutput, factorValue.limbs, factorValue.nbrLimbs, groupLen);
-    }
-    else
-    {
-      Bin2Dec(&ptrOutput, factorValue.limbs, factorValue.nbrLimbs, groupLen);
-    }
-    if (pstFactor->multiplicity > 1)
-    {
-      if (prettyprint)
+      if (pstFactor->multiplicity > 1)
       {
-        copyStr(&ptrOutput, "<sup>");
-        int2dec(&ptrOutput, pstFactor->multiplicity);
-        copyStr(&ptrOutput, "</sup>");
+        copyStr(&ptrOutput, "<msup><mn>");
       }
       else
       {
-        *ptrOutput = '^';
-        ptrOutput++;
+        copyStr(&ptrOutput, "<mn>");
+      }
+      if (hexadecimal)
+      {
+        Bin2Hex(&ptrOutput, factorValue.limbs, factorValue.nbrLimbs, groupLen);
+      }
+      else
+      {
+        Bin2Dec(&ptrOutput, factorValue.limbs, factorValue.nbrLimbs, groupLen);
+      }
+      if (pstFactor->multiplicity > 1)
+      {
+        copyStr(&ptrOutput, "</mn><mn>");
         int2dec(&ptrOutput, pstFactor->multiplicity);
+        copyStr(&ptrOutput, "</mn></msup>");
+      }
+      else
+      {
+        copyStr(&ptrOutput, "</mn>");
+      }
+    }
+    else
+    {
+      if (hexadecimal)
+      {
+        Bin2Hex(&ptrOutput, factorValue.limbs, factorValue.nbrLimbs, groupLen);
+      }
+      else
+      {
+        Bin2Dec(&ptrOutput, factorValue.limbs, factorValue.nbrLimbs, groupLen);
+      }
+      if (pstFactor->multiplicity > 1)
+      {
+        if (prettyprint)
+        {
+          copyStr(&ptrOutput, "<sup>");
+          int2dec(&ptrOutput, pstFactor->multiplicity);
+          copyStr(&ptrOutput, "</sup>");
+        }
+        else
+        {
+          *ptrOutput = '^';
+          ptrOutput++;
+          int2dec(&ptrOutput, pstFactor->multiplicity);
+        }
       }
     }
 #ifdef ENABLE_VERBOSE
@@ -1373,7 +1441,11 @@ void SendFactorizationToOutput(const struct sFactors *pstFactors, char **pptrOut
     {
       break;
     }
-    if (prettyprint)
+    if (useMath)
+    {
+      copyStr(&ptrOutput, "<mo>&times;</mo>");
+    }
+    else if (prettyprint)
     {
       copyStr(&ptrOutput, " &times; ");
     }
@@ -1382,6 +1454,10 @@ void SendFactorizationToOutput(const struct sFactors *pstFactors, char **pptrOut
       copyStr(&ptrOutput, " * ");
     }
     pstFactor++;
+  }
+  if (useMath)
+  {
+    copyStr(&ptrOutput, "</mrow></math>");
   }
   *pptrOutput = ptrOutput;
 }

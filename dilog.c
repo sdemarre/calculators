@@ -833,15 +833,16 @@ static void generateOutput(enum eExprErr rc, int groupLength)
     }
     else
     {
-      copyStr(&ptrOutput, "<p><var>exp</var> = ");
+      copyStr(&ptrOutput, "<p><math><mrow><mi>exp</mi><mo>=</mo><mn>");
       Bin2Out(&ptrOutput, DiscreteLog.limbs, DiscreteLog.nbrLimbs, groupLength);
+      copyStr(&ptrOutput, "</mn>");
       if (!BigIntIsZero(&DiscreteLogPeriod))
       {   // Discrete log period is not zero.
-        copyStr(&ptrOutput, " + ");
+        copyStr(&ptrOutput, "<mo>+</mo><mn>");
         Bin2Out(&ptrOutput, DiscreteLogPeriod.limbs, DiscreteLogPeriod.nbrLimbs, groupLength);
-        copyStr(&ptrOutput, "<var>k</var>");
+        copyStr(&ptrOutput, "</mn><mo>&InvisibleTimes;</mo><mi>k</mi>");
       }
-      copyStr(&ptrOutput, "</p>");
+      copyStr(&ptrOutput, "</mrow></math></p>");
     }
   }
   copyStr(&ptrOutput, "<p>");
