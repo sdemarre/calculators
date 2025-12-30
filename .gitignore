@@ -2,6 +2,7 @@
 *fco
 *fbo
 *oto
+*plo
 *~
 ecm
 quad
@@ -21,3 +22,5 @@ modmult
 testmodmult
 prod
 division
+string/
+toweb/
