@@ -687,38 +687,79 @@ void ComputeFourSquares(const struct sFactors* pstFactors)
 static void varSquared(char** pptrOutput, char letter, char sign)
 {
   char* ptrOutput = *pptrOutput;
-  *ptrOutput = ' ';
-  ptrOutput++;
+  copyStr(&ptrOutput, "<msup><mi>");
   *ptrOutput = letter;
   ptrOutput++;
-  copyStr(&ptrOutput, (prettyprint ? "&sup2;" : "^2"));
-  *ptrOutput = ' ';
-  ptrOutput++;
-  *ptrOutput = sign;
-  ptrOutput++;
+  copyStr(&ptrOutput, "</mi><mn>2</mn></msup>");
+  if (sign == '+')
+  {
+    copyStr(&ptrOutput, "<mo>+</mo>");
+  }
   *pptrOutput = ptrOutput;
+}
+
+static void mathStart(char** pptrOutput)
+{
+  copyStr(pptrOutput, "<math><mrow>");
+}
+
+static void mathEnd(char** pptrOutput)
+{
+  copyStr(pptrOutput, "</mrow></math>");
+}
+
+static void mathMo(char** pptrOutput, const char* op)
+{
+  copyStr(pptrOutput, "<mo>");
+  copyStr(pptrOutput, op);
+  copyStr(pptrOutput, "</mo>");
+}
+
+static void mathMi(char** pptrOutput, char letter)
+{
+  copyStr(pptrOutput, "<mi>");
+  *(*pptrOutput) = letter;
+  (*pptrOutput)++;
+  copyStr(pptrOutput, "</mi>");
+}
+
+static void mathMnBig(char** pptrOutput, const BigInteger* value)
+{
+  copyStr(pptrOutput, "<mn>");
+  if (hexadecimal)
+  {
+    BigInteger2Hex(pptrOutput, value, groupLen);
+  }
+  else
+  {
+    BigInteger2Dec(pptrOutput, value, groupLen);
+  }
+  copyStr(pptrOutput, "</mn>");
+}
+
+static void mathSquaredLimbs(char** pptrOutput, const limb* value, int nbrLimbs)
+{
+  copyStr(pptrOutput, "<msup><mn>");
+  if (hexadecimal)
+  {
+    Bin2Hex(pptrOutput, value, nbrLimbs, groupLen);
+  }
+  else
+  {
+    Bin2Dec(pptrOutput, value, nbrLimbs, groupLen);
+  }
+  copyStr(pptrOutput, "</mn><mn>2</mn></msup>");
 }
 
 static void valueVar(char** pptrOutput, char letter, const BigInteger* value)
 {
   char* ptrOutput = *pptrOutput;
   beginLine(&ptrOutput);
-  *ptrOutput = letter;
-  ptrOutput++;
-  *ptrOutput = ' ';
-  ptrOutput++;
-  *ptrOutput = '=';
-  ptrOutput++;
-  *ptrOutput = ' ';
-  ptrOutput++;
-  if (hexadecimal)
-  {
-    BigInteger2Hex(&ptrOutput, value, groupLen);
-  }
-  else
-  {
-    BigInteger2Dec(&ptrOutput, value, groupLen);
-  }
+  mathStart(&ptrOutput);
+  mathMi(&ptrOutput, letter);
+  mathMo(&ptrOutput, "=");
+  mathMnBig(&ptrOutput, value);
+  mathEnd(&ptrOutput);
   finishLine(&ptrOutput);
   *pptrOutput = ptrOutput;
 }
@@ -863,7 +904,9 @@ static void showSumSqButton(char** pptrOutput)
 void ShowFourSquares(char** pptrOutput)
 {
   beginLine(pptrOutput);
-  copyStr(pptrOutput, "n =");
+  mathStart(pptrOutput);
+  mathMi(pptrOutput, 'n');
+  mathMo(pptrOutput, "=");
   if (BigIntIsZero(&Quad4))
   {          // Quad4 equals zero.
     if (BigIntIsZero(&Quad3))
@@ -871,6 +914,7 @@ void ShowFourSquares(char** pptrOutput)
       if (BigIntIsZero(&Quad2))
       {      // Quad2, Quad3 and Quad4 equal zero.
         varSquared(pptrOutput, 'a', ' ');
+        mathEnd(pptrOutput);
         finishLine(pptrOutput);
         valueVar(pptrOutput, 'a', &Quad1);
         showSumSqButton(pptrOutput);
@@ -878,6 +922,7 @@ void ShowFourSquares(char** pptrOutput)
       }
       varSquared(pptrOutput, 'a', '+');
       varSquared(pptrOutput, 'b', ' ');
+      mathEnd(pptrOutput);
       finishLine(pptrOutput);
       valueVar(pptrOutput, 'a', &Quad1);
       valueVar(pptrOutput, 'b', &Quad2);
@@ -887,6 +932,7 @@ void ShowFourSquares(char** pptrOutput)
     varSquared(pptrOutput, 'a', '+');
     varSquared(pptrOutput, 'b', '+');
     varSquared(pptrOutput, 'c', ' ');
+    mathEnd(pptrOutput);
     finishLine(pptrOutput);
     valueVar(pptrOutput, 'a', &Quad1);
     valueVar(pptrOutput, 'b', &Quad2);
@@ -897,7 +943,8 @@ void ShowFourSquares(char** pptrOutput)
   varSquared(pptrOutput, 'b', '+');
   varSquared(pptrOutput, 'c', '+');
   varSquared(pptrOutput, 'd', ' ');
-  copyStr(pptrOutput, "</p>");
+  mathEnd(pptrOutput);
+  finishLine(pptrOutput);
   valueVar(pptrOutput, 'a', &Quad1);
   valueVar(pptrOutput, 'b', &Quad2);
   valueVar(pptrOutput, 'c', &Quad3);
@@ -1060,27 +1107,21 @@ void showSumTwoSquares(void)
     const int* ptrIntArray = common.k.sumSquares.ptrFoundSumSquares[sumSquaresNbr];
     int arrLen;
     copyStr(&ptrOutput, "<li>");
+    mathStart(&ptrOutput);
     for (int component = 0; component < 2; component++)
     {
       NumberLength = *ptrIntArray;
       IntArray2BigInteger(ptrIntArray, &Tmp);
       arrLen = *ptrIntArray;
       ptrIntArray++;
-      if (hexadecimal)
-      {
-        Bin2Hex(&ptrOutput, (const limb*)ptrIntArray, arrLen, groupLen);
-      }
-      else
-      {
-        Bin2Dec(&ptrOutput, (const limb*)ptrIntArray, arrLen, groupLen);
-      }
-      copyStr(&ptrOutput, "&sup2;");
+      mathSquaredLimbs(&ptrOutput, (const limb*)ptrIntArray, arrLen);
       if (component == 0)
       {
-        copyStr(&ptrOutput, " + ");
+        mathMo(&ptrOutput, "+");
         ptrIntArray += arrLen;
       }
     }
+    mathEnd(&ptrOutput);
     copyStr(&ptrOutput, "</li>");
   }
   copyStr(&ptrOutput, "</ul>");

@@ -87,9 +87,9 @@ static void showExponent(char **pptrOutput, int expon)
   }
   if (pretty == PRETTY_PRINT)
   {
-    copyStr(pptrOutput, "<sup>");
+    copyStr(pptrOutput, "<mo>^</mo><mn>");
     int2dec(pptrOutput, expon);
-    copyStr(pptrOutput, "</sup>");
+    copyStr(pptrOutput, "</mn>");
   }
   else
   {
@@ -1318,15 +1318,17 @@ static void MoveFactorsAndFixPointers(struct sFactorInfo* ptrFactorInfo, bool co
 
 static void showOneSubindex(char poly, int index)
 {
-  *ptrOutput++ = poly;
   if (pretty == PRETTY_PRINT)
   {
-    copyStr(&ptrOutput, "<sub>");
+    copyStr(&ptrOutput, "<msub><mi>");
+    *ptrOutput++ = poly;
+    copyStr(&ptrOutput, "</mi><mn>");
     int2dec(&ptrOutput, index);
-    copyStr(&ptrOutput, "</sub>");
+    copyStr(&ptrOutput, "</mn></msub>");
   }
   else
   {
+    *ptrOutput++ = poly;
     copyStr(&ptrOutput, "_");
     int2dec(&ptrOutput, index);
   }
@@ -1334,17 +1336,19 @@ static void showOneSubindex(char poly, int index)
 
 static void showTwoSubindexes(char poly, int firstIndex, int secondIndex)
 {
-  *ptrOutput++ = poly;
   if (pretty == PRETTY_PRINT)
   {
-    copyStr(&ptrOutput, "<sub>");
+    copyStr(&ptrOutput, "<msub><mi>");
+    *ptrOutput++ = poly;
+    copyStr(&ptrOutput, "</mi><mn>");
     int2dec(&ptrOutput, firstIndex);
     copyStr(&ptrOutput, ", ");
     int2dec(&ptrOutput, secondIndex);
-    copyStr(&ptrOutput, "</sub>");
+    copyStr(&ptrOutput, "</mn></msub>");
   }
   else
   {
+    *ptrOutput++ = poly;
     copyStr(&ptrOutput, "_{");
     int2dec(&ptrOutput, firstIndex);
     copyStr(&ptrOutput, ", ");
@@ -1979,29 +1983,9 @@ void showPower(char **pptrOutput, int exponent)
   char *ptrOut = *pptrOutput;
   if (pretty == PRETTY_PRINT)
   {
-    *ptrOut = '<';
-    ptrOut++;
-    *ptrOut = 's';
-    ptrOut++;
-    *ptrOut = 'u';
-    ptrOut++;
-    *ptrOut = 'p';
-    ptrOut++;
-    *ptrOut = '>';
-    ptrOut++;
+    copyStr(&ptrOut, "<mo>^</mo><mn>");
     int2dec(&ptrOut, exponent);
-    *ptrOut = '<';
-    ptrOut++;
-    *ptrOut = '/';
-    ptrOut++;
-    *ptrOut = 's';
-    ptrOut++;
-    *ptrOut = 'u';
-    ptrOut++;
-    *ptrOut = 'p';
-    ptrOut++;
-    *ptrOut = '>';
-    ptrOut++;
+    copyStr(&ptrOut, "</mn>");
   }
   else if (pretty == TEX)
   {
@@ -2027,21 +2011,39 @@ void showPowerVar(char** pptrOutput, int polyDegree, char letter)
   char* ptrOut = *pptrOutput;
   if (polyDegree == 0)
   {
-    *ptrOut = '1';
-    ptrOut++;
+    if (pretty == PRETTY_PRINT)
+    {
+      copyStr(&ptrOut, "<mn>1</mn>");
+    }
+    else
+    {
+      *ptrOut = '1';
+      ptrOut++;
+    }
   }
   else
   {
     if (pretty == PRETTY_PRINT)
     {
-      showVariable(&ptrOut, letter);
+      if (polyDegree == 1)
+      {
+        showVariable(&ptrOut, letter);
+      }
+      else
+      {
+        copyStr(&ptrOut, "<msup>");
+        showVariable(&ptrOut, letter);
+        copyStr(&ptrOut, "<mn>");
+        int2dec(&ptrOut, polyDegree);
+        copyStr(&ptrOut, "</mn></msup>");
+      }
     }
     else
     {
       *ptrOut = letter;
       ptrOut++;
     }
-    if (polyDegree != 1)
+    if ((pretty != PRETTY_PRINT) && (polyDegree != 1))
     {
       showPower(&ptrOut, polyDegree);
     }
@@ -2107,19 +2109,32 @@ static void showPolynomialMontOrNorm(char **pptrOutput, const int *ptrPoly,
     int len = numLimbs(ptrValue1);
     if ((len != 1) || (*(ptrValue1 + 1) != 0))
     {            // Coefficient is not zero.
-      *ptrOut = ' ';
-      ptrOut++;
+      if (pretty != PRETTY_PRINT)
+      {
+        *ptrOut = ' ';
+        ptrOut++;
+      }
       if (*ptrValue1 > 0)
       {
-        *ptrOut = '+';
-        ptrOut++;
+        if (pretty == PRETTY_PRINT)
+        {
+          copyStr(&ptrOut, "<mo>+</mo>");
+        }
+        else
+        {
+          *ptrOut = '+';
+          ptrOut++;
+        }
       }
       else
       {
-        copyStr(&ptrOut, (pretty == PRETTY_PRINT)? "&minus;": "-");
+        copyStr(&ptrOut, (pretty == PRETTY_PRINT)? "<mo>&minus;</mo>": "-");
       }
-      *ptrOut = ' ';
-      ptrOut++;
+      if (pretty != PRETTY_PRINT)
+      {
+        *ptrOut = ' ';
+        ptrOut++;
+      }
       if (isMontNotation)
       {
         getMontCoeff(ptrValue1);
@@ -2207,7 +2222,14 @@ static void outputOriginalPolynomialElem(char** pptrOutput, const int* ptrPoly, 
   }
   if (operand1.sign == SIGN_NEGATIVE)
   {
-    copyStr(&ptrOut, " &minus;");
+    if (pretty == PRETTY_PRINT)
+    {
+      copyStr(&ptrOut, "<mo>&minus;</mo>");
+    }
+    else
+    {
+      copyStr(&ptrOut, " -");
+    }
   }
   if ((operand1.nbrLimbs != 1) || (operand1.limbs[0].x != 1) || (degree == 0))
   {     // Leading coefficient is not 1 or degree is zero.
@@ -2354,7 +2376,7 @@ void outputPolynomialFactor(char **pptrOutput, int groupLength, const struct sFa
     UncompressBigIntegerB(ptrSrc, &operand1);
     if (operand1.sign == SIGN_NEGATIVE)
     {
-      copyStr(&ptrOut, "&minus;");
+      copyStr(&ptrOut, (pretty == PRETTY_PRINT)? "<mo>&minus;</mo>": "-");
     }
     if ((operand1.nbrLimbs != 1) || (operand1.limbs[0].x != 1))
     {     // Absolute value is not 1.

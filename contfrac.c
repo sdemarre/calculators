@@ -218,11 +218,12 @@ static void showFormula(void)
   // Show formula.
   // the fraction whose numerator is
   // and the denominator is
-  formatString(&ptrOutput, "2<p><var>x</var> = <span class=\"fraction\">"
-    "<span class=\"offscr\">$1s </span><span class=\"fup\">$2b" // Numerator
-    " + <span class=\"sqrtout\"><span class=\"sqrtin\">$3b"     // Radicand
-    "</span></span></span><span class=\"bar\"> </span><span class=\"fdn\">"
-    "<span class=\"offscr\">$4s</span>$5b</span></span></p>",   // Denominator
+  formatString(&ptrOutput,
+    "2<p><math><mrow><mi>x</mi><mo>=</mo>"
+    "<mfrac><mrow><mtext class=\"offscr\">$1s</mtext>"
+    "<mn>$2b</mn><mo>+</mo><msqrt><mrow><mn>$3b</mn></mrow></msqrt></mrow>"
+    "<mrow><mtext class=\"offscr\">$4s</mtext><mn>$5b</mn></mrow></mfrac>"
+    "</mrow></math></p>",
     LITERAL_SHOW_FORMULA_NUM, &origNum, &origDelta, LITERAL_SHOW_FORMULA_DEN, &origDen);
 }
 
@@ -234,7 +235,7 @@ static void showX(void)
     showText("<span class = \"offscr\">");
     // The expansion in continued fraction of
     showText(LITERAL_EXPANSION_CONTFRAC);
-    showText(" </span><var>x</var> = ");
+    showText(" </span><math><mrow><mi>x</mi><mo>=</mo></mrow></math> ");
   }
 }
 

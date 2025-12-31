@@ -104,7 +104,6 @@ static bool ExchXY;
 static char *ptrOutput;
 static bool showDivGcd;
 static const char *varT = "t";
-static const char *squareText = "&sup2;";
 static BigInteger discr;
 static BigInteger U1;
 static BigInteger U2;
@@ -171,11 +170,6 @@ static void showText(const char *text)
   copyStr(&ptrOutput, text);
 }
 
-static void showMinus(void)
-{
-  showText("&minus;");
-}
-
 static void shownbr(const BigInteger* value)
 {
   BigInteger2Dec(&ptrOutput, value, groupLen);
@@ -186,9 +180,94 @@ static void showInt(int value)
   int2dec(&ptrOutput, value);
 }
 
-static void showSquare(void)
+static void mathStart(void)
 {
-  showText("&sup2;");
+  showText("<math><mrow>");
+}
+
+static void mathEnd(void)
+{
+  showText("</mrow></math>");
+}
+
+static void mathRowStart(void)
+{
+  showText("<mrow>");
+}
+
+static void mathRowEnd(void)
+{
+  showText("</mrow>");
+}
+
+static void mathMi(const char *name)
+{
+  showText("<mi>");
+  showText(name);
+  showText("</mi>");
+}
+
+static void mathMnInt(int value)
+{
+  showText("<mn>");
+  int2dec(&ptrOutput, value);
+  showText("</mn>");
+}
+
+static void mathMnBig(const BigInteger *value)
+{
+  showText("<mn>");
+  BigInteger2Dec(&ptrOutput, value, groupLen);
+  showText("</mn>");
+}
+
+static void mathMnBigAbs(const BigInteger *value)
+{
+  showText("<mn>");
+  Bin2Dec(&ptrOutput, value->limbs, value->nbrLimbs, groupLen);
+  showText("</mn>");
+}
+
+static void mathMo(const char *op)
+{
+  showText("<mo>");
+  showText(op);
+  showText("</mo>");
+}
+
+static void mathMsup(void)
+{
+  showText("<msup>");
+}
+
+static void mathMsub(void)
+{
+  showText("<msub>");
+}
+
+static void mathMsupEnd(void)
+{
+  showText("</msup>");
+}
+
+static void mathMsubEnd(void)
+{
+  showText("</msub>");
+}
+
+static void mathMfrac(void)
+{
+  showText("<mfrac>");
+}
+
+static void mathMfracEnd(void)
+{
+  showText("</mfrac>");
+}
+
+static void mathMul(void)
+{
+  mathMo("&InvisibleTimes;");
 }
 
 static void showAlso(void)
@@ -238,41 +317,21 @@ static void ShowLin(const BigInteger *coeffX, const BigInteger *coeffY, const Bi
 
 static void ShowLinInd(const BigInteger *lin, const BigInteger *ind, const char *var)
 {
+  enum eLinearSolution t;
   if (BigIntIsZero(ind) && BigIntIsZero(lin))
   {
-    showText("0");
+    mathMnInt(0);
+    return;
   }
+  t = SOLUTION_FOUND;
   if (!BigIntIsZero(ind))
   {
-    shownbr(ind);
+    Show(ind, "", t);
+    t = NO_SOLUTIONS;
   }
-  *ptrOutput = ' ';
-  ptrOutput++;
-  if (lin->sign == SIGN_NEGATIVE)
-  {
-    showMinus();
-  }
-  else if (!BigIntIsZero(lin) && !BigIntIsZero(ind))
-  {
-    *ptrOutput = '+';
-    ptrOutput++;
-  }
-  else
-  {            // Nothing to do.
-  }
-  *ptrOutput = ' ';
-  ptrOutput++;
   if (!BigIntIsZero(lin))
   {
-    if ((lin->nbrLimbs != 1) || (lin->limbs[0].x != 1))
-    {     // abs(lin) is not 1
-      CopyBigInt(&Aux[0], lin);
-      Aux[0].sign = SIGN_POSITIVE;   // Do not show negative sign twice.
-      shownbr(&Aux[0]);
-    }
-    *ptrOutput = ' ';
-    ptrOutput++;
-    showText(var);
+    Show(lin, var, t);
   }
 }
 
@@ -303,10 +362,18 @@ static void PrintLinear(enum eLinearSolution Ret, const char *var)
     CopyBigInt(&Xlin, &Ylin);
     CopyBigInt(&Ylin, &bigTmp);
   }
-  showText("<p>x = ");
+  showText("<p>");
+  mathStart();
+  mathMi("x");
+  mathMo("=");
   ShowLinInd(&Xlin, &Xind, var);
-  showText("<br>y = ");
+  mathEnd();
+  showText("<br>");
+  mathStart();
+  mathMi("y");
+  mathMo("=");
   ShowLinInd(&Ylin, &Yind, var);
+  mathEnd();
   showText("</p>");
   return;
 }
@@ -314,118 +381,94 @@ static void PrintLinear(enum eLinearSolution Ret, const char *var)
 static void PrintQuad(const BigInteger *coeffT2, const BigInteger *coeffT, const BigInteger *coeffInd, 
                       const char *var1, const char *var2)
 {
-  if ((coeffT2->nbrLimbs == 1) && (coeffT2->limbs[0].x == 1))
-  {             // abs(coeffT2) = 1
-    if (coeffT2->sign == SIGN_POSITIVE)
-    {           // coeffT2 = 1
-      *ptrOutput = ' ';
-      ptrOutput++;
-    }
-    else
-    {           // coeffT2 = -1
-      showMinus();
-    }
-    showText(var1);
-    showSquare();
-  }
-  else if (!BigIntIsZero(coeffT2))
-  {             // coeffT2 is not zero.
-    shownbr(coeffT2);
-    *ptrOutput = ' ';
-    ptrOutput++;
-    showText(var1);
-    showSquare();
-  }
-  else
-  {              // Nothing to do.
-  }
-  if (coeffT->sign == SIGN_NEGATIVE)
+  bool hasTerm = false;
+  if (!BigIntIsZero(coeffT2))
   {
-    showText(" &minus; ");
-  }
-  else if (!BigIntIsZero(coeffT) && !BigIntIsZero(coeffT2))
-  {
-    showText(" + ");
-  }
-  else
-  {              // Nothing to do.
-  }
-  if ((coeffT->nbrLimbs == 1) && (coeffT->limbs[0].x == 1))
-  {     // abs(coeffT) = 1
-    showText(var1);
-    showText("&#8290;");
-    if (var2 != NULL)
+    if (coeffT2->sign == SIGN_NEGATIVE)
     {
-      showText(var2);
+      mathMo("-");
     }
-    showText(" ");
+    else if (hasTerm)
+    {
+      mathMo("+");
+    }
+    if ((coeffT2->nbrLimbs != 1) || (coeffT2->limbs[0].x != 1))
+    {
+      mathMnBigAbs(coeffT2);
+      mathMul();
+    }
+    mathMsup();
+    showText(var1);
+    mathMnInt(2);
+    mathMsupEnd();
+    hasTerm = true;
   }
-  else if (!BigIntIsZero(coeffT))
+  if (!BigIntIsZero(coeffT))
   {
     if (coeffT->sign == SIGN_NEGATIVE)
     {
-      Bin2Dec(&ptrOutput, coeffT->limbs, coeffT->nbrLimbs, groupLen);
+      mathMo("-");
     }
-    else
+    else if (hasTerm)
     {
-      shownbr(coeffT);
+      mathMo("+");
     }
-    showText(" ");
+    if ((coeffT->nbrLimbs != 1) || (coeffT->limbs[0].x != 1))
+    {
+      mathMnBigAbs(coeffT);
+      mathMul();
+    }
     showText(var1);
     if (var2 != NULL)
     {
-      showText("&#8290;");
+      mathMul();
       showText(var2);
     }
-  }
-  else
-  {           // Nothing to do.
+    hasTerm = true;
   }
   if (!BigIntIsZero(coeffInd))
   {
-    if (!BigIntIsZero(coeffT) || !BigIntIsZero(coeffT2))
+    if (coeffInd->sign == SIGN_NEGATIVE)
     {
-      if (coeffInd->sign == SIGN_NEGATIVE)
-      {
-        showText(" &minus; ");
-      }
-      else
-      {
-        showText(" + ");
-      }
+      mathMo("-");
     }
-    else if (coeffInd->sign == SIGN_NEGATIVE)
+    else if (hasTerm)
     {
-      showText(" &minus;");
-    }
-    else
-    {           // Nothing to do.
+      mathMo("+");
     }
     if (var2 == NULL)
     {
-      Bin2Dec(&ptrOutput, coeffInd->limbs, coeffInd->nbrLimbs, groupLen);
-    }
-    else if ((coeffInd->nbrLimbs > 1) || (coeffInd->limbs[0].x > 1))
-    {
-      Bin2Dec(&ptrOutput, coeffInd->limbs, coeffInd->nbrLimbs, groupLen);
-      showText("&nbsp;&#8290;");
-      showText(var2);
-      showSquare();
+      mathMnBigAbs(coeffInd);
     }
     else
     {
+      if ((coeffInd->nbrLimbs != 1) || (coeffInd->limbs[0].x != 1))
+      {
+        mathMnBigAbs(coeffInd);
+        mathMul();
+      }
+      mathMsup();
       showText(var2);
-      showSquare();
+      mathMnInt(2);
+      mathMsupEnd();
     }
   }
 }
 
 static void showSolutionXY(const BigInteger *X, const BigInteger *Y)
 {
-  showText("<p>x = ");
-  shownbr(ExchXY ? Y : X);
-  showText("<BR>y = ");
-  shownbr(ExchXY ? X : Y);
+  showText("<p>");
+  mathStart();
+  mathMi("x");
+  mathMo("=");
+  mathMnBig(ExchXY ? Y : X);
+  mathEnd();
+  showText("<br>");
+  mathStart();
+  mathMi("y");
+  mathMo("=");
+  mathMnBig(ExchXY ? X : Y);
+  mathEnd();
   showText("</p>");
 }
 
@@ -474,93 +517,91 @@ void ShowXY(BigInteger *X, BigInteger *Y)
 
 static int Show(const BigInteger *num, const char *str, enum eLinearSolution t)
 {
-  enum eLinearSolution tOut = t;
-  if (!BigIntIsZero(num))
-  {     // num is not zero.
-    if ((t == NO_SOLUTIONS) && (num->sign == SIGN_POSITIVE))
-    {
-      *ptrOutput = ' ';
-      ptrOutput++;
-      *ptrOutput = '+';
-      ptrOutput++;
-    }
-    if (num->sign == SIGN_NEGATIVE)
-    {
-      *ptrOutput = ' ';
-      ptrOutput++;
-      *ptrOutput = '-';
-      ptrOutput++;
-    }
+  bool hasPrev = (t == NO_SOLUTIONS);
+  if (BigIntIsZero(num))
+  {
+    return t;
+  }
+  if (num->sign == SIGN_NEGATIVE)
+  {
+    mathMo("-");
+  }
+  else if (hasPrev)
+  {
+    mathMo("+");
+  }
+  if ((str == NULL) || (*str == '\0'))
+  {
+    mathMnBigAbs(num);
+  }
+  else
+  {
     if ((num->nbrLimbs != 1) || (num->limbs[0].x != 1))
-    {    // num is not 1 or -1.
-      *ptrOutput = ' ';
-      ptrOutput++;
-      Bin2Dec(&ptrOutput, num->limbs, num->nbrLimbs, groupLen);
-      copyStr(&ptrOutput, "&nbsp;&#8290;");
-    }
-    else
     {
-      copyStr(&ptrOutput, "&nbsp;");
+      mathMnBigAbs(num);
+      mathMul();
     }
     showText(str);
-    if (t == SOLUTION_FOUND)
-    {
-      tOut = NO_SOLUTIONS;
-    }
   }
-  return tOut;
+  return NO_SOLUTIONS;
 }
 
 static void Show1(const BigInteger *num, enum eLinearSolution t)
 {
-  int u = Show(num, "", t);
-  *ptrOutput = ' ';
-  ptrOutput++;
-  if (((u & 1) == 0) || ((num->nbrLimbs == 1) && (num->limbs[0].x == 1)))
-  {          // Show absolute value of num.
-    Bin2Dec(&ptrOutput, num->limbs, num->nbrLimbs, groupLen);
-  }
+  (void)Show(num, "", t);
 }
 
 static void ShowEq(const BigInteger *coeffA, const BigInteger *coeffB, const BigInteger *coeffC, 
   const BigInteger *coeffD, const BigInteger *coeffE, const BigInteger *coeffF,
   const char *x, const char *y)
 {
-  char var[30];
+  char var[80];
   char *ptrVar;
   enum eLinearSolution t;
   ptrVar = var;
+  copyStr(&ptrVar, "<msup><mi>");
   copyStr(&ptrVar, x);
-  copyStr(&ptrVar, squareText);
+  copyStr(&ptrVar, "</mi><mn>2</mn></msup>");
   t = Show(coeffA, var, SOLUTION_FOUND);
 
   ptrVar = var;
+  copyStr(&ptrVar, "<mrow><mi>");
   copyStr(&ptrVar, x);
-  copyStr(&ptrVar, "&#8290;");
+  copyStr(&ptrVar, "</mi><mo>&InvisibleTimes;</mo><mi>");
   copyStr(&ptrVar, y);
+  copyStr(&ptrVar, "</mi></mrow>");
   t = Show(coeffB, var, t);
 
   ptrVar = var;
+  copyStr(&ptrVar, "<msup><mi>");
   copyStr(&ptrVar, y);
-  copyStr(&ptrVar, squareText);
+  copyStr(&ptrVar, "</mi><mn>2</mn></msup>");
   t = Show(coeffC, var, t);
 
-  t = Show(coeffD, x, t);
+  ptrVar = var;
+  copyStr(&ptrVar, "<mi>");
+  copyStr(&ptrVar, x);
+  copyStr(&ptrVar, "</mi>");
+  t = Show(coeffD, var, t);
 
-  t = Show(coeffE, y, t);
+  ptrVar = var;
+  copyStr(&ptrVar, "<mi>");
+  copyStr(&ptrVar, y);
+  copyStr(&ptrVar, "</mi>");
+  t = Show(coeffE, var, t);
   Show1(coeffF, t);
 }
 
-static void showFactors(const BigInteger *value)
+static void showFactorsRow(const BigInteger *value)
 {
   const struct sFactors *pstFactor;
   int numFactors = astFactorsMod[0].multiplicity;
   bool factorShown = false;
-  shownbr(value);
-  showText(" = ");
+  mathMnBig(value);
+  mathMo("=");
   if (value->sign == SIGN_NEGATIVE)
   {
-    showMinus();
+    mathMo("-");
   }
   pstFactor = &astFactorsMod[1];
   for (int index = 0; index < numFactors; index++)
@@ -574,22 +615,33 @@ static void showFactors(const BigInteger *value)
     }
     if (factorShown)
     {
-      showText(" &times; ");
+      mathMo("&times;");
     }
-    shownbr(&prime);
     if (pstFactor->multiplicity != 1)
     {
-      showText("<sup>");
-      showInt(pstFactor->multiplicity);
-      showText("</sup>");
+      mathMsup();
+      mathMnBig(&prime);
+      mathMnInt(pstFactor->multiplicity);
+      mathMsupEnd();
+    }
+    else
+    {
+      mathMnBig(&prime);
     }
     factorShown = true;
     pstFactor++;
   }
   if (!factorShown)
   {      // No factor shown. Show 1.
-    showText("1");
+    mathMnInt(1);
   }
+}
+
+static void showFactors(const BigInteger *value)
+{
+  mathStart();
+  showFactorsRow(value);
+  mathEnd();
 }
 
 static void showValue(BigInteger* value)
@@ -609,8 +661,12 @@ static void showValue(BigInteger* value)
       showText("<ol>");
       firstSolutionX = false;
     }
-    showText("<li><var>T</var> = ");
-    BigInteger2Dec(&ptrOutput, value, groupLen);
+    showText("<li>");
+    mathStart();
+    mathMi("T");
+    mathMo("=");
+    mathMnBig(value);
+    mathEnd();
     showText("</li>");
   }
 }
@@ -641,13 +697,19 @@ static void NoSolsModPrime(int expon)
   {
     // There are no solutions modulo
     formatString(&ptrOutput, "<p>$1s", LITERAL_NO_SOLS_MOD_PRIME1);
-    shownbr(&prime);
+    mathStart();
     if (expon != 1)
     {
-      showText("<sup>");
-      int2dec(&ptrOutput, expon);
-      showText("</sup>");
+      mathMsup();
+      mathMnBig(&prime);
+      mathMnInt(expon);
+      mathMsupEnd();
     }
+    else
+    {
+      mathMnBig(&prime);
+    }
+    mathEnd();
     // , so the modular equation does not have any solution.
     formatString(&ptrOutput, "$1s</p>", LITERAL_NO_SOLS_MOD_PRIME2);
   }
@@ -665,13 +727,19 @@ static void ShowSolutionsModPrime(int factorIndex, int expon, const BigInteger *
   intToBigInteger(&ValH, 0);
   // Solutions modulo
   formatString(&ptrOutput, "<p>$1s", LITERAL_SOLS_MOD_PRIME1);
-  shownbr(&prime);
+  mathStart();
   if (expon != 1)
   {
-    showText("<sup>");
-    int2dec(&ptrOutput, expon);
-    showText("</sup>");
+    mathMsup();
+    mathMnBig(&prime);
+    mathMnInt(expon);
+    mathMsupEnd();
   }
+  else
+  {
+    mathMnBig(&prime);
+  }
+  mathEnd();
   showText(": ");
   do
   {
@@ -692,7 +760,9 @@ static void ShowSolutionsModPrime(int factorIndex, int expon, const BigInteger *
       }
     }
     BigIntAdd(&ValH, &common.quad.Solution1[factorIndex], &ValJ);
-    shownbr(&ValJ);
+    mathStart();
+    mathMnBig(&ValJ);
+    mathEnd();
     if (!oneSolution)
     {
       if (last)
@@ -705,7 +775,9 @@ static void ShowSolutionsModPrime(int factorIndex, int expon, const BigInteger *
         showText(", ");
       }
       BigIntAdd(&ValH, &common.quad.Solution2[factorIndex], &ValJ);
-      shownbr(&ValJ);
+      mathStart();
+      mathMnBig(&ValJ);
+      mathEnd();
     }
     CopyBigInt(&ValH, &ValI);
   } while (!last);
@@ -756,9 +828,15 @@ void SolveQuadModEquation(void)
   {     // All values from 0 to GcdAll - 1 are solutions.
     if ((GcdAll.nbrLimbs > 1) || (GcdAll.limbs[0].x > 5))
     {
-      showText("<p>All values of <var>x</var> between 0 and ");
+      showText("<p>All values of ");
+      mathStart();
+      mathMi("x");
+      mathEnd();
+      showText(" between 0 and ");
       addbigint(&GcdAll, -1);
-      BigInteger2Dec(&ptrOutput, &GcdAll, groupLen);
+      mathStart();
+      mathMnBig(&GcdAll);
+      mathEnd();
       showText(" are solutions.</p>");
     }
     else
@@ -861,7 +939,7 @@ enum eLinearSolution LinearEq(BigInteger* coeffX, BigInteger* coeffY, BigInteger
   {
     // This is a linear equation
     formatString(&ptrOutput, "<p>$1s", LITERAL_LINEAREQ1);
-    ShowLin(coeffX, coeffY, coeffInd, "x", "y");
+    ShowLin(coeffX, coeffY, coeffInd, "<mi>x</mi>", "<mi>y</mi>");
     showText(" = 0</p>");
   }
   if (BigIntIsZero(coeffX))
@@ -942,7 +1020,7 @@ enum eLinearSolution LinearEq(BigInteger* coeffX, BigInteger* coeffY, BigInteger
       showText(LITERAL_LINEAREQ15);
       showText("</p>");
     }
-    ShowLin(coeffX, coeffY, coeffInd, "x", "y");
+    ShowLin(coeffX, coeffY, coeffInd, "<mi>x</mi>", "<mi>y</mi>");
     showText(" = 0</p>");
     // Now we must apply the Generalized Euclidean algorithm:
     formatString(&ptrOutput, "<p>$1s</p>", LITERAL_LINEAREQ3);
@@ -1063,7 +1141,7 @@ enum eLinearSolution LinearEq(BigInteger* coeffX, BigInteger* coeffY, BigInteger
     shownbr(&bigTmp);
     // So, the solution is given by the set:
     formatString(&ptrOutput, "</p><p>$1s</p>", LITERAL_LINEAREQ8);
-    PrintLinear(0, "t'");
+    PrintLinear(0, "<mi>t'</mi>");
     showText("</p>");
   }
   if (teach)
@@ -1073,28 +1151,41 @@ enum eLinearSolution LinearEq(BigInteger* coeffX, BigInteger* coeffY, BigInteger
     formatString(&ptrOutput, "<p>$1s</p><p>$2s</p>", LITERAL_LINEAREQ9, LITERAL_LINEAREQ10);
     enum eLinearSolution t;
     showText("<p>x = ");
-    t = Show(coeffY, "t", SOLUTION_FOUND);
-    t = Show(coeffY, "K", t);
+    t = Show(coeffY, "<mi>t</mi>", SOLUTION_FOUND);
+    t = Show(coeffY, "<mi>K</mi>", t);
     Show1(&Xind, t);
     showText("<br>y = ");
-    t = Show(coeffX, "t", SOLUTION_FOUND);
-    t = Show(coeffX, "K", t);
+    t = Show(coeffX, "<mi>t</mi>", SOLUTION_FOUND);
+    t = Show(coeffX, "<mi>K</mi>", t);
     Show1(&Yind, t);
     // We must find the value of K that minimizes the sum of squares of the constant terms:
     formatString(&ptrOutput, "</p><p>&1s</p>", LITERAL_LINEAREQ11);
-    showText("<p>f(K) = (");
-    t = Show(coeffY, "K", SOLUTION_FOUND);
+    showText("<p>");
+    mathStart();
+    mathMi("f");
+    mathMo("(");
+    mathMi("K");
+    mathMo(")");
+    mathMo("=");
+    mathMsup();
+    mathMo("(");
+    t = Show(coeffY, "<mi>K</mi>", SOLUTION_FOUND);
     Show1(&Xind, t);
-    showText(")");
-    showText(squareText);
-    showText(" + (");
-    t = Show(coeffX, "K", SOLUTION_FOUND);
+    mathMo(")");
+    mathMnInt(2);
+    mathMsupEnd();
+    mathMo("+");
+    mathMsup();
+    mathMo("(");
+    t = Show(coeffX, "<mi>K</mi>", SOLUTION_FOUND);
     Show1(&Yind, t);
-    showText(")");
-    showText(squareText);
+    mathMo(")");
+    mathMnInt(2);
+    mathMsupEnd();
+    mathEnd();
     // To find the minimum, the derivative of f(K) must be zero.
     formatString(&ptrOutput, "</p><p>$1s</p><p>2 &times; (", LITERAL_LINEAREQ12);
-    t = Show(coeffY, "K", SOLUTION_FOUND);
+    t = Show(coeffY, "<mi>K</mi>", SOLUTION_FOUND);
     Show1(&Xind, t);
     showText(") &times; ");
     if (coeffY->sign == SIGN_POSITIVE)
@@ -1108,7 +1199,7 @@ enum eLinearSolution LinearEq(BigInteger* coeffX, BigInteger* coeffY, BigInteger
       showText(")");
     }
     showText(" + 2 &times; (");
-    t = Show(coeffX, "K", SOLUTION_FOUND);
+    t = Show(coeffX, "<mi>K</mi>", SOLUTION_FOUND);
     Show1(&Yind, t);
     showText(") &times; ");
     if (coeffX->sign == SIGN_POSITIVE)
@@ -1130,14 +1221,14 @@ enum eLinearSolution LinearEq(BigInteger* coeffX, BigInteger* coeffY, BigInteger
     BigIntAdd(&U2, &U2, &U2);
     (void)BigIntMultiply(coeffX, coeffX, &V1);
     BigIntAdd(&V1, &V1, &V1);
-    t = Show(&U2, "K", SOLUTION_FOUND);
+    t = Show(&U2, "<mi>K</mi>", SOLUTION_FOUND);
     Show1(&U1, t);
-    t = Show(&V1, "K", NO_SOLUTIONS);
+    t = Show(&V1, "<mi>K</mi>", NO_SOLUTIONS);
     Show1(&U3, t);
     showText(" = 0</p><p>");
     BigIntAdd(&U1, &U3, &U1);
     BigIntAdd(&U2, &V1, &U2);
-    t = Show(&U2, "K", SOLUTION_FOUND);
+    t = Show(&U2, "<mi>K</mi>", SOLUTION_FOUND);
     Show1(&U1, t);
     showText(" = 0</p>");
     BigIntChSign(coeffX);
@@ -1158,17 +1249,20 @@ enum eLinearSolution LinearEq(BigInteger* coeffX, BigInteger* coeffY, BigInteger
   {
     // By making the substitution
     formatString(&ptrOutput, "<p>$1s", LITERAL_LINEAREQ13);
-    showText("<var>t'</var> = ");
-    shownbr(&U1);
+    mathStart();
+    mathMi("t'");
+    mathMo("=");
+    mathMnBig(&U1);
     if ((Xlin.sign == SIGN_NEGATIVE) && (Ylin.sign == SIGN_NEGATIVE))
     {    // If both coefficients are negative, change sign of transformation.
-      showText(" &minus;");
+      mathMo("-");
     }
     else
     {
-      showText(" +");
+      mathMo("+");
     }
-    showText(" <var>t</var> ");
+    mathMi("t");
+    mathEnd();
     // we finally obtain:
     formatString(&ptrOutput, "$1s</p>", LITERAL_LINEAREQ14);
   }
@@ -1212,7 +1306,7 @@ static void ShowTDiscrZero(void)
     BigIntAdd(&ValA, &ValA, &ValH);
   }
   intToBigInteger(&ValJ, 0);
-  ShowLin(&ValH, &ValI, &ValJ, "<var>x</var>", "<var>y</var>");
+  ShowLin(&ValH, &ValI, &ValJ, "<mi>x</mi>", "<mi>y</mi>");
 }
 
 static void DiscriminantIsZero(void)
@@ -1227,11 +1321,17 @@ static void DiscriminantIsZero(void)
   {
     showText("<p>");
     // Multiplying by 4&#8290;$1v
-    formatString(&ptrOutput, LITERAL_DISCR_ZERO1, ExchXY ? 'c': 'a');
-    showText("</p><p>(");
+    formatString(&ptrOutput, LITERAL_DISCR_ZERO1, ExchXY ? "<mi>c</mi>" : "<mi>a</mi>");
+    showText("</p><p>");
+    mathStart();
+    mathMsup();
+    mathRowStart();
+    mathMo("(");
     ShowTDiscrZero();
-    showText(")");
-    showSquare();
+    mathMo(")");
+    mathRowEnd();
+    mathMnInt(2);
+    mathMsupEnd();
     if (ExchXY)
     {
       (void)BigIntMultiply(&ValA, &ValE, &ValH);
@@ -1252,37 +1352,65 @@ static void DiscriminantIsZero(void)
       {
         if (ValJ.sign == SIGN_POSITIVE)
         {
-          showText(" + ");
+          mathMo("+");
         }
       }
       else if (ValI.sign == SIGN_POSITIVE)
       {
-        showText(" + ");
+        mathMo("+");
       }
     }
     else if (ValH.sign == SIGN_POSITIVE)
     {
-      showText(" + ");
+      mathMo("+");
     }
     else
     {   // Nothing to do.
     }
-    ShowLin(&ValH, &ValI, &ValJ, "<var>x</var>", "<var>y</var>");
-    showText(" = 0</p><p>");
+    ShowLin(&ValH, &ValI, &ValJ, "<mi>x</mi>", "<mi>y</mi>");
+    mathMo("=");
+    mathMnInt(0);
+    mathEnd();
+    showText("</p><p>");
     showText(LITERAL_DISCR_ZERO2);    // Let
-    showText(" <var>t</var> = ");
+    showText(" ");
+    mathStart();
+    mathMi("t");
+    mathMo("=");
     ShowTDiscrZero();
+    mathEnd();
     intToBigInteger(&ValJ, 0);
     intToBigInteger(&ValH, 1);
     showEqNbr(1);
-    showText("</p><p>(<var>t</var> + <var>");
-    showText(ExchXY?"e</var>)": "d</var>)");
-    showSquare();
-    showText(" = (");
-    ShowLin(&ValJ, &ValH, &ValD, "", "<var>t</var>");
-    showText(")");
-    showSquare();
-    showText(" = ");
+    showText("</p><p>");
+    mathStart();
+    mathMsup();
+    mathRowStart();
+    mathMo("(");
+    mathMi("t");
+    mathMo("+");
+    if (ExchXY)
+    {
+      mathMi("e");
+    }
+    else
+    {
+      mathMi("d");
+    }
+    mathMo(")");
+    mathRowEnd();
+    mathMnInt(2);
+    mathMsupEnd();
+    mathMo("=");
+    mathMsup();
+    mathRowStart();
+    mathMo("(");
+    ShowLin(&ValJ, &ValH, &ValD, "", "<mi>t</mi>");
+    mathMo(")");
+    mathRowEnd();
+    mathMnInt(2);
+    mathMsupEnd();
+    mathMo("=");
   }
   (void)BigIntMultiply(&ValB, &ValD, &Aux[0]);
   (void)BigIntMultiply(&ValA, &ValE, &Aux[1]);
@@ -1299,26 +1427,51 @@ static void DiscriminantIsZero(void)
   {
     if (ExchXY)
     {
-      ptrVarNameX = "<var>y</var>";
-      ptrVarNameY = "<var>x</var>";
+      ptrVarNameX = "<mi>y</mi>";
+      ptrVarNameY = "<mi>x</mi>";
     }
     else
     {
-      ptrVarNameX = "<var>x</var>";
-      ptrVarNameY = "<var>y</var>";
+      ptrVarNameX = "<mi>x</mi>";
+      ptrVarNameY = "<mi>y</mi>";
     }
     ShowLin(&ValJ, &ValU, &ValV, ptrVarNameX, ptrVarNameY);
+    mathEnd();
     if (!BigIntIsZero(&ValU) && !BigIntIsZero(&ValV))
     {
       showEqNbr(2);
     }
     showText("</p><p>");
     showText(LITERAL_DISCR_ZERO3);    // where the linear coefficient is 
-    showText(ExchXY ? "2&#8290;(<var>b</var>&#8290;<var>e</var> &minus; 2&#8290;<var>c</var><var>d</var>)" :
-      "2&#8290;(<var>b</var>&#8290;<var>d</var> &minus; 2&#8290;<var>a</var><var>e</var>)");
+    mathStart();
+    mathMnInt(2);
+    mathMul();
+    mathMo("(");
+    mathMi("b");
+    mathMul();
+    mathMi(ExchXY ? "e" : "d");
+    mathMo("-");
+    mathMnInt(2);
+    mathMul();
+    mathMi(ExchXY ? "c" : "a");
+    mathMul();
+    mathMi(ExchXY ? "d" : "e");
+    mathMo(")");
+    mathEnd();
     showText(LITERAL_DISCR_ZERO4);    // and the constant coefficient is
-    showText(ExchXY ? "<var>e</var>&sup2; &minus; 4&#8290;<var>c</var><var>f</var>.</p>" :
-      "<var>d</var>&sup2; &minus; 4&#8290;<var>a</var><var>f</var>.</p>");
+    mathStart();
+    mathMsup();
+    mathMi(ExchXY ? "e" : "d");
+    mathMnInt(2);
+    mathMsupEnd();
+    mathMo("-");
+    mathMnInt(4);
+    mathMul();
+    mathMi(ExchXY ? "c" : "a");
+    mathMul();
+    mathMi("f");
+    mathEnd();
+    showText("</p>");
   }
   if (BigIntIsZero(&ValU))
   { // u equals zero, so (t+d)^2 = v.
@@ -1337,7 +1490,7 @@ static void DiscriminantIsZero(void)
       multint(&Aux[3], &ValA, 2);
       ret = LinearEq(&Aux[3], &ValB, &ValD);
       startResultBox(ret);
-      PrintLinear(ret, "<var>t</var>");
+      PrintLinear(ret, "<mi>t</mi>");
       endResultBox(ret);
       return;
     }
@@ -1362,24 +1515,24 @@ static void DiscriminantIsZero(void)
     if (teach)
     {
       showText("<p>");
-      ShowLin(&ValJ, &ValH, &ValD, "", "<var>t</var>");
+    ShowLin(&ValJ, &ValH, &ValD, "", "<mi>t</mi>");
       showText(" = &pm;");
       shownbr(&ValG);
       // This equation represents two parallel lines. The first line is:
       formatString(&ptrOutput, "</p><p>$1s</p><p>", LITERAL_DISCR_ZERO7);
       if (ExchXY)
       {
-        ShowLin(&Aux[5], &Aux[3], &Aux[4], "<var>x</var>", "<var>y</var>");
+        ShowLin(&Aux[5], &Aux[3], &Aux[4], "<mi>x</mi>", "<mi>y</mi>");
       }
       else
       {
-        ShowLin(&Aux[3], &Aux[5], &Aux[4], "<var>x</var>", "<var>y</var>");
+        ShowLin(&Aux[3], &Aux[5], &Aux[4], "<mi>x</mi>", "<mi>y</mi>");
       }
       showText(" = 0</p>");
     }
     ret = LinearEq(&Aux[3], &Aux[5], &Aux[4]);
     startResultBox(ret);
-    PrintLinear(ret, "<var>t</var>");
+    PrintLinear(ret, "<mi>t</mi>");
     endResultBox(ret);
     multint(&Aux[3], &ValA, 2);
     BigIntSubt(&ValD, &ValG, &Aux[4]);
@@ -1390,17 +1543,17 @@ static void DiscriminantIsZero(void)
       formatString(&ptrOutput, "<p>$1s</p><p>", LITERAL_DISCR_ZERO8);
       if (ExchXY)
       {
-        ShowLin(&Aux[5], &Aux[3], &Aux[4], "<var>x</var>", "<var>y</var>");
+        ShowLin(&Aux[5], &Aux[3], &Aux[4], "<mi>x</mi>", "<mi>y</mi>");
       }
       else
       {
-        ShowLin(&Aux[3], &Aux[5], &Aux[4], "<var>x</var>", "<var>y</var>");
+        ShowLin(&Aux[3], &Aux[5], &Aux[4], "<mi>x</mi>", "<mi>y</mi>");
       }
       showText(" = 0</p>");
     }
     ret = LinearEq(&Aux[3], &Aux[5], &Aux[4]);
     startResultBox(ret);
-    PrintLinear(ret, "<var>t</var>");
+    PrintLinear(ret, "<mi>t</mi>");
     endResultBox(ret);
     return;
   }
@@ -1411,15 +1564,22 @@ static void DiscriminantIsZero(void)
     // We have to solve
     showText("<p>");
     showText(LITERAL_DISCR_ZERO9);  // We have to solve
-    showText(" <var>T</var>");
-    showSquare();
-    showText(" = ");
-    shownbr(&ValV);
+    showText(" ");
+    mathStart();
+    mathMsup();
+    mathMi("T");
+    mathMnInt(2);
+    mathMsupEnd();
+    mathMo("=");
+    mathMnBig(&ValV);
+    mathMo("mod");
+    mathMo("(");
     CopyBigInt(&ValH, &ValU);
     ValH.sign = SIGN_POSITIVE;
-    showText(" (mod ");
-    shownbr(&ValH);
-    showText(")</p>");
+    mathMnBig(&ValH);
+    mathMo(")");
+    mathEnd();
+    showText("</p>");
   }
   callbackQuadModType = CBACK_QMOD_PARABOLIC;
   intToBigInteger(&coeffQuadr, 1);
@@ -1483,26 +1643,33 @@ static void callbackQuadModParabolic(const BigInteger *value)
    // Compute ValR <- (T^2 - v)/u
   if (teach)
   {
-    showText("<p><var>t</var> = <var>T</var> &minus; <var>");
-    showText(ExchXY ? "e" : "d");
-    showText("</var> ");
+    showText("<p>");
+    mathStart();
+    mathMi("t");
+    mathMo("=");
+    mathMi("T");
+    mathMo("-");
+    mathMi(ExchXY ? "e" : "d");
     CopyBigInt(&ValH, &ValU);
     if (ValH.sign == SIGN_POSITIVE)
     {
-      showText("+ ");
+      mathMo("+");
     }
     else
     {
-      showText("&minus; ");
+      mathMo("-");
     }
     if ((ValU.nbrLimbs > 1) || (ValU.limbs[0].x > 1))
     {         // Absolute value of U is not 1.
       ValH.sign = SIGN_POSITIVE;
-      shownbr(&ValH);
+      mathMnBig(&ValH);
+      mathMul();
     }
-    showText(" &#8290<var>k</var> = ");
+    mathMi("k");
+    mathMo("=");
     BigIntSubt(value, &ValD, &ValH);
-    ShowLinInd(&ValU, &ValH, "<var>k</var>");
+    ShowLinInd(&ValU, &ValH, "<mi>k</mi>");
+    mathEnd();
     showEqNbr(equationNbr);
     // (where $1v is any integer).
     formatString(&ptrOutput, LITERAL_DISCR_ZERO10, 'k');
@@ -1521,7 +1688,7 @@ static void callbackQuadModParabolic(const BigInteger *value)
     showText("</p><p>");
     showText(ptrVarNameY);
     showText(" = ");
-    PrintQuad(&ValU, &ValS, &ValR, "<var>k</var>", NULL);
+    PrintQuad(&ValU, &ValS, &ValR, "<mi>k</mi>", NULL);
     showEqNbr(equationNbr+1);
     showText("</p><p>");
     // From $1q and $2q:
@@ -1530,7 +1697,7 @@ static void callbackQuadModParabolic(const BigInteger *value)
     ShowTDiscrZero();
     showText(" = ");
     BigIntSubt(value, &ValD, &ValH);
-    ShowLinInd(&ValU, &ValH, "<var>k</var>");
+    ShowLinInd(&ValU, &ValH, "<mi>k</mi>");
     showText("</p>");
     BigIntAdd(&ValA, &ValA, &ValK);
     if (!BigIntIsZero(&ValB))
@@ -1548,7 +1715,7 @@ static void callbackQuadModParabolic(const BigInteger *value)
       BigIntSubt(&ValU, &bigTmp, &ValI); // Linear coeff = U - bS.
       (void)BigIntMultiply(&ValB, &ValR, &bigTmp);
       BigIntSubt(&ValH, &bigTmp, &ValH); // Independent coeff = H - bR.
-      PrintQuad(&ValJ, &ValI, &ValH, "<var>k</var>", NULL);
+      PrintQuad(&ValJ, &ValI, &ValH, "<mi>k</mi>", NULL);
       showText("</p>");
     }
     // if independent coefficient is not multiple of GCD(I, K) then show that
@@ -1615,8 +1782,12 @@ static void callbackQuadModParabolic(const BigInteger *value)
   }
   showAlso();
   startResultBox(SOLUTION_FOUND);
-  showText("<p><var>x</var> = ");
-  PrintQuad(&V3, &V2, &V1, "<var>k</var>", NULL);
+  showText("<p>");
+  mathStart();
+  mathMi("x");
+  mathMo("=");
+  PrintQuad(&V3, &V2, &V1, "<mi>k</mi>", NULL);
+  mathEnd();
   showText("<br>");
   if (ExchXY)
   {
@@ -1626,8 +1797,11 @@ static void callbackQuadModParabolic(const BigInteger *value)
   {
     ComputeYDiscrZero();
   }
-  showText("<var>y</var> = ");
-  PrintQuad(&V3, &V2, &V1, "<var>k</var>", NULL);
+  mathStart();
+  mathMi("y");
+  mathMo("=");
+  PrintQuad(&V3, &V2, &V1, "<mi>k</mi>", NULL);
+  mathEnd();
   if (teach)
   {
     showText("<br>");
@@ -1646,10 +1820,18 @@ static void ShowPoint(const BigInteger *X, const BigInteger *Y)
   int solution = 0;
   if (teach)
   {
-    showText("<p><var>X</var> = ");
-    shownbr(X);
-    showText(", <var>Y</var> = ");
-    shownbr(Y);
+    showText("<p>");
+    mathStart();
+    mathMi("X");
+    mathMo("=");
+    mathMnBig(X);
+    mathEnd();
+    showText(", ");
+    mathStart();
+    mathMi("Y");
+    mathMo("=");
+    mathMnBig(Y);
+    mathEnd();
     showText("</p>");
   }
   // Check first that (X+alpha) and (Y+beta) are multiple of D.
@@ -1657,10 +1839,22 @@ static void ShowPoint(const BigInteger *X, const BigInteger *Y)
   BigIntAdd(Y, &ValBeta, &Tmp2);
   if (teach && !(BigIntIsZero(&ValAlpha) && BigIntIsZero(&ValBeta)))
   {
-    showText("<p><var>X</var> + <var>&alpha;</var> = ");
-    shownbr(&Tmp1);
-    showText(", <var>Y</var> + <var>&beta;</var> = ");
-    shownbr(&Tmp2);
+    showText("<p>");
+    mathStart();
+    mathMi("X");
+    mathMo("+");
+    mathMi("&alpha;");
+    mathMo("=");
+    mathMnBig(&Tmp1);
+    mathEnd();
+    showText(", ");
+    mathStart();
+    mathMi("Y");
+    mathMo("+");
+    mathMi("&beta;");
+    mathMo("=");
+    mathMnBig(&Tmp2);
+    mathEnd();
     showText("</p>");
   }
   (void)BigIntRemainder(&Tmp1, &ValDiv, &bigTmp);
@@ -1673,7 +1867,7 @@ static void ShowPoint(const BigInteger *X, const BigInteger *Y)
       {
         showText("<p>");
         // Dividing these numbers by $1v = $2b:
-        formatString(&ptrOutput, LITERAL_SHOW_POINT1, 'D', &ValDiv);
+        formatString(&ptrOutput, LITERAL_SHOW_POINT1, "<mi>D</mi>", &ValDiv);
         showText("</p>");
       }
       (void)BigIntDivide(&Tmp1, &ValDiv, &Tmp1);
@@ -1700,7 +1894,7 @@ static void ShowPoint(const BigInteger *X, const BigInteger *Y)
   {
     showText("<p>");
     // These numbers are not multiple of $1v = $2b.
-    formatString(&ptrOutput, LITERAL_SHOW_POINT2, 'D', &ValDiv);
+    formatString(&ptrOutput, LITERAL_SHOW_POINT2, "<mi>D</mi>", &ValDiv);
     showText("</p>");
   }
 }
@@ -1779,8 +1973,8 @@ static void NonSquareDiscriminant(void)
   equationNbr = 2;
   BigIntGcd(&ValA, &ValK, &bigTmp);
   intToBigInteger(&ValM, 0);
-  varXnoTrans = "<var>X</var>";
-  varYnoTrans = "<var>Y</var>";
+  varXnoTrans = "<mi>X</mi>";
+  varYnoTrans = "<mi>Y</mi>";
   if ((bigTmp.nbrLimbs != 1) || (bigTmp.limbs[0].x != 1))
   {                        // gcd(a, K) is not equal to 1.
     if (teach)
@@ -1789,16 +1983,62 @@ static void NonSquareDiscriminant(void)
       // The algorithm requires that the coefficient of $1v&sup2; and the right hand side
       // are coprime. This does not happen, so we have to find a value of $2v such that
       // applying one of the unimodular transformations
-      formatString(&ptrOutput, LITERAL_NON_SQUARE_DISC1, 'X', 'm');
-      showText("</p><ul><li><var>X</var> = <var>m</var>&#8290;<var>U</var> + <var>(m&minus;1)</var>&#8290;<var>V</var>, ");
-      showText("<var>Y</var> = <var>U</var> + <var>V</var></li>");
-      showText("<li><var>X</var> = <var>U</var> + <var>V</var>, ");
-      showText("<var>Y</var> = <var>(m&minus;1)</var>&#8290;<var>U</var> + <var>m</var>&#8290;<var>V</var></li></ul><p>");
+      formatString(&ptrOutput, LITERAL_NON_SQUARE_DISC1, "<mi>X</mi>", "<mi>m</mi>");
+      showText("</p><ul><li>");
+      mathStart();
+      mathMi("X");
+      mathMo("=");
+      mathMi("m");
+      mathMul();
+      mathMi("U");
+      mathMo("+");
+      mathMo("(");
+      mathMi("m");
+      mathMo("-");
+      mathMnInt(1);
+      mathMo(")");
+      mathMul();
+      mathMi("V");
+      mathEnd();
+      showText(", ");
+      mathStart();
+      mathMi("Y");
+      mathMo("=");
+      mathMi("U");
+      mathMo("+");
+      mathMi("V");
+      mathEnd();
+      showText("</li>");
+      showText("<li>");
+      mathStart();
+      mathMi("X");
+      mathMo("=");
+      mathMi("U");
+      mathMo("+");
+      mathMi("V");
+      mathEnd();
+      showText(", ");
+      mathStart();
+      mathMi("Y");
+      mathMo("=");
+      mathMo("(");
+      mathMi("m");
+      mathMo("-");
+      mathMnInt(1);
+      mathMo(")");
+      mathMul();
+      mathMi("U");
+      mathMo("+");
+      mathMi("m");
+      mathMul();
+      mathMi("V");
+      mathEnd();
+      showText("</li></ul><p>");
       // the coefficient of $1v&sup2; and the right hand side are coprime. This coefficient equals
-      formatString(&ptrOutput, LITERAL_NON_SQUARE_DISC2, 'U');
-      PrintQuad(&ValA, &ValB, &ValC, "<var>m</var>", NULL);      
+      formatString(&ptrOutput, LITERAL_NON_SQUARE_DISC2, "<mi>U</mi>");
+      PrintQuad(&ValA, &ValB, &ValC, "<mi>m</mi>", NULL);      
       showText(LITERAL_NON_SQUARE_DISC3);    // in the first case and
-      PrintQuad(&ValC, &ValB, &ValA, "(<var>m</var> &minus; 1)", NULL);
+      PrintQuad(&ValC, &ValB, &ValA, "<mrow><mo>(</mo><mi>m</mi><mo>-</mo><mn>1</mn><mo>)</mo></mrow>", NULL);
       showText(LITERAL_NON_SQUARE_DISC4);    // in the second case.
       showText("</p>");
     }
@@ -1856,62 +2096,81 @@ static void NonSquareDiscriminant(void)
       if (ValM.sign == SIGN_POSITIVE)
       {
         // We will use the first unimodular transformation with $1v = $2d:
-        formatString(&ptrOutput, LITERAL_NON_SQUARE_DISC5, 'm', m);
+        formatString(&ptrOutput, LITERAL_NON_SQUARE_DISC5, "<mi>m</mi>", m);
       }
       else
       {
         // We will use the second unimodular transformation with $1v = $2d:
-        formatString(&ptrOutput, LITERAL_NON_SQUARE_DISC6, 'm', m);
+        formatString(&ptrOutput, LITERAL_NON_SQUARE_DISC6, "<mi>m</mi>", m);
       }
-      showText(" <var>X</var> = ");
+      showText(" ");
+      mathStart();
       if (ValM.sign == SIGN_POSITIVE)
       {
+        mathMi("X");
+        mathMo("=");
         if (m == 1)
         {
-          showText("<var>U</var>");
+          mathMi("U");
         }
         else
         {
-          showInt(m);
-          showText(" &#8290;<var>U</var> + ");
+          mathMnInt(m);
+          mathMul();
+          mathMi("U");
+          mathMo("+");
           if (m > 2)
           {
-            showInt(m - 1);
-            showText(" &#8290;");
+            mathMnInt(m - 1);
+            mathMul();
           }
-          showText("<var>V</var>");
+          mathMi("V");
         }
-        showText(", <var>Y</var> = <var>U</var> + <var>V</var> ");
+        mathMo(",");
+        mathMi("Y");
+        mathMo("=");
+        mathMi("U");
+        mathMo("+");
+        mathMi("V");
       }
       else
       {
-        showText("<var>X</var> = <var>U</var> + <var>V</var>, <var>Y</var> = ");
+        mathMi("X");
+        mathMo("=");
+        mathMi("U");
+        mathMo("+");
+        mathMi("V");
+        mathMo(",");
+        mathMi("Y");
+        mathMo("=");
         if (m > 2)
         {
-          showInt(m - 1);
-          showText("&#8290;");
+          mathMnInt(m - 1);
+          mathMul();
         }
         if (m > 1)
         {
-          showText("<var>U</var> + ");
-          showInt(m);
-          showText("&#8290;");
+          mathMi("U");
+          mathMo("+");
+          mathMnInt(m);
+          mathMul();
         }
-        showText("<var>V</var> ");
+        mathMi("V");
       }
+      mathEnd();
       showEqNbr(2);
       showText("</p><p>");
       // Using $1q, the equation $2q converts to:
       formatString(&ptrOutput, LITERAL_NON_SQUARE_DISC7, 2, 1);
       showText("</p>");
-      PrintQuad(&ValA, &ValB, &ValC, "<var>U</var>", "<var>V</var>");
+      PrintQuad(&ValA, &ValB, &ValC, "<mi>U</mi>", "<mi>V</mi>");
       showText(" = ");
       shownbr(&ValK);
       showText(" ");
       showEqNbr(3);
       equationNbr = 4;
-      varXnoTrans = "<var>U</var>";
-      varYnoTrans = "<var>V</var>";
+      varXnoTrans = "<mi>U</mi>";
+      varYnoTrans = "<mi>V</mi>";
     }
   }
   if (teach)
@@ -1939,13 +2198,13 @@ static void NonSquareDiscriminant(void)
       {
         if (BigIntIsZero(&ValM))
         {       // No unimodular transforation.
-          varX = "<var>X'</var>";
-          varY = "<var>Y'</var>";
+          varX = "<mi>X'</mi>";
+          varY = "<mi>Y'</mi>";
         }
         else
         {       // Unimodular transforation.
-          varX = "<var>U'</var>";
-          varY = "<var>V'</var>";
+          varX = "<mi>U'</mi>";
+          varY = "<mi>V'</mi>";
         }
         // Let $1b&#8290;$2s = $3s and $1b&#8290;$4s = $5s.
         formatString(&ptrOutput, LITERAL_NON_SQUARE_DISC10,
@@ -1955,13 +2214,13 @@ static void NonSquareDiscriminant(void)
       {
         if (BigIntIsZero(&ValM))
         {       // No unimodular transforation.
-          varX = "<var>X</var>";
-          varY = "<var>Y</var>";
+          varX = "<mi>X</mi>";
+          varY = "<mi>Y</mi>";
         }
         else
         {       // Unimodular transforation.
-          varX = "<var>U</var>";
-          varY = "<var>V</var>";
+          varX = "<mi>U</mi>";
+          varY = "<mi>V</mi>";
         }
       }
       // Searching for solutions $1s and $2s coprime.
@@ -1972,16 +2231,20 @@ static void NonSquareDiscriminant(void)
         showText("<p>");
         // From equation $1q we obtain
         formatString(&ptrOutput, LITERAL_NON_SQUARE_DISC12, BigIntIsZero(&ValM) ? 1 : 3);
+        mathStart();
         PrintQuad(&ValA, &ValB, &ValC, varX, varY);
-        showText(" = ");
+        mathMo("=");
         (void)BigIntMultiply(&ValK, &ValE, &ValH);
         (void)BigIntMultiply(&ValH, &ValE, &ValH);
-        shownbr(&ValH);
-        showText(" / ");
-        shownbr(&ValE);
-        showSquare();
-        showText(" = ");
-        shownbr(&ValK);
+        mathMnBig(&ValH);
+        mathMo("/");
+        mathMsup();
+        mathMnBig(&ValE);
+        mathMnInt(2);
+        mathMsupEnd();
+        mathMo("=");
+        mathMnBig(&ValK);
+        mathEnd();
       }
     }
     CopyBigInt(&coeffQuadr, &ValA);
@@ -1995,10 +2258,16 @@ static void NonSquareDiscriminant(void)
       showText("<p>");
       // We have to solve:
       showText(LITERAL_NON_SQUARE_DISC13);
-      PrintQuad(&coeffQuadr, &coeffLinear, &coeffIndep, "<var>T</var>", NULL);
-      showText(" &equiv; 0 (mod ");
-      showFactors(&modulus);
-      showText(")<p>");
+      mathStart();
+      PrintQuad(&coeffQuadr, &coeffLinear, &coeffIndep, "<mi>T</mi>", NULL);
+      mathMo("&equiv;");
+      mathMnInt(0);
+      mathMo("(");
+      mathMo("mod");
+      showFactorsRow(&modulus);
+      mathMo(")");
+      mathEnd();
+      showText("<p>");
     }
     SolveQuadModEquation();
     // Adjust counters.
@@ -2068,13 +2337,17 @@ static void showBeforeUnimodularSubstitution(void)
   if (teach)
   {
     showText("<p>");
+    mathStart();
     showText(varXnoTrans);
-    showText(" = ");
-    shownbr(&ValZ);
+    mathMo("=");
+    mathMnBig(&ValZ);
+    mathEnd();
     showText(", ");
+    mathStart();
     showText(varYnoTrans);
-    showText(" = ");
-    shownbr(&ValO);
+    mathMo("=");
+    mathMnBig(&ValO);
+    mathEnd();
     showText("</p><p>");
     // From $1q:
     formatString(&ptrOutput, LITERAL_SHOW_BEFORE_UNIMOD_SUBST, 2);
@@ -2130,13 +2403,16 @@ static void NonSquareDiscrSolution(BigInteger *value)
     showText("<p>");
     // From $1q:
     formatString(&ptrOutput, LITERAL_SHOW_BEFORE_UNIMOD_SUBST, equationNbr);
+    mathStart();
     showText(varX);
-    showText(" = ");
-    shownbr(&ValZ);
-    showText(", ");
+    mathMo("=");
+    mathMnBig(&ValZ);
+    mathMo(",");
     showText(varY);
-    showText(" = ");
-    shownbr(&ValH);
+    mathMo("=");
+    mathMnBig(&ValH);
+    mathEnd();
+    showText("</p>");
   }
   (void)BigIntMultiply(&ValZ, &ValE, &ValZ);    // X = (tu - Kv)*E
   (void)BigIntMultiply(&ValH, &ValE, &ValO);    // Y = u*E
@@ -2185,19 +2461,27 @@ static void ShowSolutionFromConvergent(void)
     showText("<p>");
     // Solution of $1q found using the convergent
     formatString(&ptrOutput, LITERAL_SHOW_SOL_FROM_CONV1, equationNbr + 1);
+    mathStart();
+    mathMfrac();
     showText(varY);
-    showText(" / ");
+    mathRowStart();
     if (callbackQuadModType == CBACK_QMOD_HYPERBOLIC)
     {
-      showText("(&minus;<var>k</var>) = ");
+      mathMo("-");
+      mathMi("k");
     }
     else
     {
-      showText("<var>k</var> = ");
+      mathMi("k");
     }
-    shownbr(&ValH);
-    showText(" / ");
-    shownbr(&ValI);    
+    mathRowEnd();
+    mathMfracEnd();
+    mathMo("=");
+    mathMfrac();
+    mathMnBig(&ValH);
+    mathMnBig(&ValI);
+    mathMfracEnd();
+    mathEnd();
     formatString(&ptrOutput, LITERAL_SHOW_SOL_FROM_CONV2, contfracEqNbr);   // of $1q
     showText("</p>");
   }
@@ -2245,39 +2529,102 @@ static bool PerformTransformation(const BigInteger *value)
   {
     showText("<p>");
     showText(LITERAL_PERFORM_TRANSF1);   // The transformation
+    mathStart();
     showText(varX);
-    showText(" = ");
+    mathMo("=");
     CopyBigInt(&ValH, value);
     CopyBigInt(&ValI, &ValK);
     BigIntChSign(&ValI);
     intToBigInteger(&ValJ, 0);
-    ShowLin(&ValH, &ValI, &ValJ, varY, "<var>k</var>");
+    ShowLin(&ValH, &ValI, &ValJ, varY, "<mi>k</mi>");
+    mathEnd();
     showText(" ");
     showEqNbr(equationNbr);
     showText(LITERAL_PERFORM_TRANSF2);   // converts
+    mathStart();
     PrintQuad(&ValA, &ValB, &ValC, varX, varY);
-    showText(" = ");
-    shownbr(&ValK);
+    mathMo("=");
+    mathMnBig(&ValK);
+    mathEnd();
     showText(LITERAL_PERFORM_TRANSF3);   // to
-    showText("<var>P</var>&#8290;");
+    mathStart();
+    mathMi("P");
+    mathMul();
+    mathMsup();
     showText(varY);
-    showSquare();
-    showText(" + <var>Q</var>&#8290;");
+    mathMnInt(2);
+    mathMsupEnd();
+    mathMo("+");
+    mathMi("Q");
+    mathMul();
     showText(varY);
-    showText("<var>k</var> + <var>R</var>&#8290; <var>k</var>");
-    showSquare();
-    showText(" = 1 ");
+    mathMul();
+    mathMi("k");
+    mathMo("+");
+    mathMi("R");
+    mathMul();
+    mathMsup();
+    mathMi("k");
+    mathMnInt(2);
+    mathMsupEnd();
+    mathMo("=");
+    mathMnInt(1);
+    mathEnd();
     showEqNbr(equationNbr + 1);
     showText("</p>");
     showText(LITERAL_PERFORM_TRANSF4);  // where
-    showText("<var>P</var> = (<var>a</var>&#8290;<var>T</var>");
-    showSquare();
-    showText(" + <var>b</var>&#8290;<var>T</var> + <var>c</var>) / n = ");
-    shownbr(&ValP);
-    showText(", <var>Q</var> = &minus;(2&#8290;<var>a</var>&#8290;<var>T</var> + <var>b</var>) = ");
-    shownbr(&ValQ);
-    showText(", <var>R</var> = <var>a</var>&#8290;<var>n</var> = ");
-    shownbr(&ValR);
+    mathStart();
+    mathMi("P");
+    mathMo("=");
+    mathMfrac();
+    mathRowStart();
+    mathMi("a");
+    mathMul();
+    mathMsup();
+    mathMi("T");
+    mathMnInt(2);
+    mathMsupEnd();
+    mathMo("+");
+    mathMi("b");
+    mathMul();
+    mathMi("T");
+    mathMo("+");
+    mathMi("c");
+    mathRowEnd();
+    mathMi("n");
+    mathMfracEnd();
+    mathMo("=");
+    mathMnBig(&ValP);
+    mathEnd();
+    showText("<br>");
+    mathStart();
+    mathMi("Q");
+    mathMo("=");
+    mathMo("-");
+    mathRowStart();
+    mathMo("(");
+    mathMnInt(2);
+    mathMul();
+    mathMi("a");
+    mathMul();
+    mathMi("T");
+    mathMo("+");
+    mathMi("b");
+    mathMo(")");
+    mathRowEnd();
+    mathMo("=");
+    mathMnBig(&ValQ);
+    mathEnd();
+    showText("<br>");
+    mathStart();
+    mathMi("R");
+    mathMo("=");
+    mathMi("a");
+    mathMul();
+    mathMi("n");
+    mathMo("=");
+    mathMnBig(&ValR);
+    mathEnd();
     showText("</p>");
   }
   // Compute gcd of P, Q and R.
@@ -2291,7 +2638,7 @@ static bool PerformTransformation(const BigInteger *value)
   {
     showText("<p>");
     // There are no solutions because gcd($1v, $2v, $3v) is greater than 1.
-    formatString(&ptrOutput, LITERAL_PERFORM_TRANSF5, 'P', 'Q', 'R');
+    formatString(&ptrOutput, LITERAL_PERFORM_TRANSF5, "<mi>P</mi>", "<mi>Q</mi>", "<mi>R</mi>");
     showText("</p>");
     equationNbr += 2;
   }
@@ -2334,8 +2681,15 @@ static void callbackQuadModElliptic(BigInteger *value)
         if (teach)
         {
           showSecondSolution();
-          showText("<var>Q</var>/2 = ");
-          shownbr(&ValH);
+          showText(" ");
+          mathStart();
+          mathMfrac();
+          mathMi("Q");
+          mathMnInt(2);
+          mathMfracEnd();
+          mathMo("=");
+          mathMnBig(&ValH);
+          mathEnd();
           showText(", -1)</p>");
         }
         NonSquareDiscrSolution(value);   // (Q/2, -1)
@@ -2350,8 +2704,24 @@ static void callbackQuadModElliptic(BigInteger *value)
         if (teach)
         {
           showFirstSolution("-4", "2");
-          showText("(<var>Q</var>/2 &minus; 1) / 2 = ");
-          shownbr(&ValH);
+          showText(" ");
+          mathStart();
+          mathMfrac();
+          mathRowStart();
+          mathMo("(");
+          mathMfrac();
+          mathMi("Q");
+          mathMnInt(2);
+          mathMfracEnd();
+          mathMo("-");
+          mathMnInt(1);
+          mathMo(")");
+          mathRowEnd();
+          mathMnInt(2);
+          mathMfracEnd();
+          mathMo("=");
+          mathMnBig(&ValH);
+          mathEnd();
           showText(", -1)</p>");
         }
         NonSquareDiscrSolution(value);   // ((Q/2-1)/2, -1)
@@ -2361,8 +2731,24 @@ static void callbackQuadModElliptic(BigInteger *value)
         if (teach)
         {
           showSecondSolution();
-          showText("(<var>Q</var>/2 + 1) / 2 = ");
-          shownbr(&ValH);
+          showText(" ");
+          mathStart();
+          mathMfrac();
+          mathRowStart();
+          mathMo("(");
+          mathMfrac();
+          mathMi("Q");
+          mathMnInt(2);
+          mathMfracEnd();
+          mathMo("+");
+          mathMnInt(1);
+          mathMo(")");
+          mathRowEnd();
+          mathMnInt(2);
+          mathMfracEnd();
+          mathMo("=");
+          mathMnBig(&ValH);
+          mathEnd();
           showText(", -1)</p>");
         }
         NonSquareDiscrSolution(value);   // ((Q/2+1)/2, -1)
@@ -2389,8 +2775,21 @@ static void callbackQuadModElliptic(BigInteger *value)
         if (teach)
         {
           showSecondSolution();
-          showText("(<var>Q</var> &#8209; 1)/2 = ");
-          shownbr(&ValH);
+          showText(" ");
+          mathStart();
+          mathMfrac();
+          mathRowStart();
+          mathMo("(");
+          mathMi("Q");
+          mathMo("-");
+          mathMnInt(1);
+          mathMo(")");
+          mathRowEnd();
+          mathMnInt(2);
+          mathMfracEnd();
+          mathMo("=");
+          mathMnBig(&ValH);
+          mathEnd();
           showText(", -1)</p>");
         }
         NonSquareDiscrSolution(value);   // ((Q-1)/2, -1)
@@ -2399,8 +2798,21 @@ static void callbackQuadModElliptic(BigInteger *value)
         if (teach)
         {
           showThirdSolution();
-          showText("(<var>Q</var> + 1)/2 = ");
-          shownbr(&ValH);
+          showText(" ");
+          mathStart();
+          mathMfrac();
+          mathRowStart();
+          mathMo("(");
+          mathMi("Q");
+          mathMo("+");
+          mathMnInt(1);
+          mathMo(")");
+          mathRowEnd();
+          mathMnInt(2);
+          mathMfracEnd();
+          mathMo("=");
+          mathMnBig(&ValH);
+          mathEnd();
           showText(", -1)</p>");
         }
         NonSquareDiscrSolution(value);   // ((Q+1)/2, -1)
@@ -2415,8 +2827,21 @@ static void callbackQuadModElliptic(BigInteger *value)
         if (teach)
         {
           showFirstSolution("-3", "3");
-          showText("(<var>Q</var> + 3)/6 = ");
-          shownbr(&ValH);
+          showText(" ");
+          mathStart();
+          mathMfrac();
+          mathRowStart();
+          mathMo("(");
+          mathMi("Q");
+          mathMo("+");
+          mathMnInt(3);
+          mathMo(")");
+          mathRowEnd();
+          mathMnInt(6);
+          mathMfracEnd();
+          mathMo("=");
+          mathMnBig(&ValH);
+          mathEnd();
           showText(", -1)</p>");
         }
         NonSquareDiscrSolution(value);   // ((Q+3)/6, -1)
@@ -2426,8 +2851,15 @@ static void callbackQuadModElliptic(BigInteger *value)
         if (teach)
         {
           showSecondSolution();
-          showText("<var>Q</var>/3 = ");
-          shownbr(&ValH);
+          showText(" ");
+          mathStart();
+          mathMfrac();
+          mathMi("Q");
+          mathMnInt(3);
+          mathMfracEnd();
+          mathMo("=");
+          mathMnBig(&ValH);
+          mathEnd();
           showText(", -2)</p>");
         }
         NonSquareDiscrSolution(value);   // (Q/3, -2)
@@ -2437,8 +2869,21 @@ static void callbackQuadModElliptic(BigInteger *value)
         if (teach)
         {
           showThirdSolution();
-          showText("(<var>Q</var> &minus; 3)/6 = ");
-          shownbr(&ValH);
+          showText(" ");
+          mathStart();
+          mathMfrac();
+          mathRowStart();
+          mathMo("(");
+          mathMi("Q");
+          mathMo("-");
+          mathMnInt(3);
+          mathMo(")");
+          mathRowEnd();
+          mathMnInt(6);
+          mathMfracEnd();
+          mathMo("=");
+          mathMnBig(&ValH);
+          mathEnd();
           showText(", -1)</p>");
         }
         NonSquareDiscrSolution(value);   // ((Q-3)/6, -1)
@@ -2455,7 +2900,6 @@ static void callbackQuadModElliptic(BigInteger *value)
     // To obtain solutions to the equation $q
     // we have to compute the convergents of the continued fraction of
     formatString(&ptrOutput, LITERAL_CBACK_ELLIPTIC1, equationNbr+1);
-    showText("&minus;<var>Q</var> / 2&#8290;<var>P</var> = ");
     CopyBigInt(&ValU, &ValQ);
     BigIntChSign(&ValU);
     BigIntAdd(&ValP, &ValP, &ValV);
@@ -2464,9 +2908,25 @@ static void callbackQuadModElliptic(BigInteger *value)
       BigIntChSign(&ValU);
       BigIntChSign(&ValV);
     }
-    shownbr(&ValU);
-    showText(" / ");
-    shownbr(&ValV);
+    showText(" ");
+    mathStart();
+    mathMfrac();
+    mathRowStart();
+    mathMo("-");
+    mathMi("Q");
+    mathRowEnd();
+    mathRowStart();
+    mathMnInt(2);
+    mathMul();
+    mathMi("P");
+    mathRowEnd();
+    mathMfracEnd();
+    mathMo("=");
+    mathMfrac();
+    mathMnBig(&ValU);
+    mathMnBig(&ValV);
+    mathMfracEnd();
+    mathEnd();
     showText("</p><p>");
     // The continued fraction is:
     formatString(&ptrOutput, LITERAL_CBACK_ELLIPTIC2);
@@ -2577,11 +3037,11 @@ static void CheckSolutionSquareDiscr(void)
   {
     intToBigInteger(&ValJ, 0);
     showText("<li><p>");
-    ShowLin(&ValH, &ValI, &ValJ, "X", "Y");
+    ShowLin(&ValH, &ValI, &ValJ, "<mi>X</mi>", "<mi>Y</mi>");
     showText(" = ");
     shownbr(&currentFactor);
     showText(",");
-    ShowLin(&ValL, &ValM, &ValJ, "X", "Y");
+    ShowLin(&ValL, &ValM, &ValJ, "<mi>X</mi>", "<mi>Y</mi>");
     showText(" = ");
     shownbr(&ValN);
     showText("</p>");
@@ -2656,19 +3116,25 @@ static void PerfectSquareDiscriminant(void)
     {
       showText("<p>");
       // Multiplying by 4&#8290;$1v:
-      formatString(&ptrOutput, LITERAL_PERFECT_SQUARE_DISCR1, 'a');
+      formatString(&ptrOutput, LITERAL_PERFECT_SQUARE_DISCR1, "<mi>a</mi>");
       showText("</p>");
     }
   }
   if (teach)
   {
     intToBigInteger(&ValJ, 0);
-    showText("<p>(");
-    ShowLin(&V1, &V2, &ValJ, "X", "Y");
-    showText(") &#8290;(");
-    ShowLin(&ValH, &ValI, &ValJ, "X", "Y");
-    showText(") = ");
-    shownbr(&ValL);
+    showText("<p>");
+    mathStart();
+    mathMo("(");
+    ShowLin(&V1, &V2, &ValJ, "<mi>X</mi>", "<mi>Y</mi>");
+    mathMo(")");
+    mathMul();
+    mathMo("(");
+    ShowLin(&ValH, &ValI, &ValJ, "<mi>X</mi>", "<mi>Y</mi>");
+    mathMo(")");
+    mathMo("=");
+    mathMnBig(&ValL);
+    mathEnd();
     showText("</p><p>");
     (void)BigIntMultiply(&ValR, &ValS, &V3);
     if ((V3.nbrLimbs > 1) || (V3.limbs[0].x > 1))
@@ -2678,21 +3144,26 @@ static void PerfectSquareDiscriminant(void)
       (void)BigIntDivide(&ValH, &ValS, &ValH);
       (void)BigIntDivide(&ValI, &ValS, &ValI);
       (void)BigIntRemainder(&ValL, &V3, &bigTmp);
+      mathStart();
       if (!BigIntIsZero(&bigTmp))
       {
-        shownbr(&V3);
-        showText(" &#8290;");
+        mathMnBig(&V3);
+        mathMul();
       }
-      showText("(");
-      ShowLin(&V1, &V2, &ValJ, "X", "Y");
-      showText(") &#8290;(");
-      ShowLin(&ValH, &ValI, &ValJ, "X", "Y");
-      showText(") = ");
+      mathMo("(");
+      ShowLin(&V1, &V2, &ValJ, "<mi>X</mi>", "<mi>Y</mi>");
+      mathMo(")");
+      mathMul();
+      mathMo("(");
+      ShowLin(&ValH, &ValI, &ValJ, "<mi>X</mi>", "<mi>Y</mi>");
+      mathMo(")");
+      mathMo("=");
       if (BigIntIsZero(&bigTmp))
       {
         (void)BigIntDivide(&ValL, &V3, &ValL);
       }
-      shownbr(&ValL);
+      mathMnBig(&ValL);
+      mathEnd();
       showText("</p><p>");
       if (!BigIntIsZero(&bigTmp))
       {
@@ -2715,7 +3186,7 @@ static void PerfectSquareDiscriminant(void)
     {    // Coefficient a equals zero.
       if (teach)
       {
-        ShowLin(&ValH, &ValI, &ValJ, "X", "Y");
+        ShowLin(&ValH, &ValI, &ValJ, "<mi>X</mi>", "<mi>Y</mi>");
         showText(" = 0</p>");
       }
       // Solve Dy - beta = 0
@@ -2730,7 +3201,7 @@ static void PerfectSquareDiscriminant(void)
         showText("</p><p>");
       }
       startResultBox(ret);
-      PrintLinear(ret, "t");
+      PrintLinear(ret, "<mi>t</mi>");
       endResultBox(ret);
       // Solve bDx + cDy - b*alpha - c*beta = 0
       (void)BigIntMultiply(&ValB, &discr, &Aux[0]);
@@ -2755,7 +3226,7 @@ static void PerfectSquareDiscriminant(void)
       BigIntChSign(&Aux[2]);
       if (teach)
       {
-        ShowLin(&ValH, &ValI, &ValJ, "X", "Y");
+        ShowLin(&ValH, &ValI, &ValJ, "<mi>X</mi>", "<mi>Y</mi>");
         showText(" = 0</p>");
       }
       ret = LinearEq(&Aux[0], &Aux[1], &Aux[2]);
@@ -2766,7 +3237,7 @@ static void PerfectSquareDiscriminant(void)
         showText("</p><p>");
       }
       startResultBox(ret);
-      PrintLinear(ret, "t");
+      PrintLinear(ret, "<mi>t</mi>");
       endResultBox(ret);
       // Solve the equation 2aD x + (b-g)D y = 2a*alpha + (b-g)*beta
       (void)BigIntMultiply(&ValA, &discr, &Aux[0]);
@@ -2782,12 +3253,12 @@ static void PerfectSquareDiscriminant(void)
     }
     if (teach)
     {
-      ShowLin(&V1, &V2, &ValJ, "X", "Y");
+      ShowLin(&V1, &V2, &ValJ, "<mi>X</mi>", "<mi>Y</mi>");
       showText(" = 0</p>");
     }
     ret = LinearEq(&Aux[0], &Aux[1], &Aux[2]);
     startResultBox(ret);
-    PrintLinear(ret, "t");
+    PrintLinear(ret, "<mi>t</mi>");
     endResultBox(ret);
     return;
   }
@@ -2980,48 +3451,61 @@ static void CheckStartOfContinuedFractionPeriod(void)
 static void ShowArgumentContinuedFraction(char *ptrArgContFrac)
 {
   char* ptr = ptrArgContFrac;
-  copyStr(&ptr, " (");
+  copyStr(&ptr, " ");
+  copyStr(&ptr, "<math><mrow>");
+  copyStr(&ptr, "<mfrac><mrow>");
   if (positiveDenominator == 0)
   {
-    copyStr(&ptr, "&minus;");
+    copyStr(&ptr, "<mo>-</mo>");
   }
-  copyStr(&ptr, "<var>Q</var> + <span class = \"sqrtout\"><span class=\"sqrtin\"><var>D</var>");
+  copyStr(&ptr, "<mi>Q</mi><mo>+</mo><msqrt><mrow><mi>D</mi>");
   if ((ValB.limbs[0].x & 1) == 0)
   {
-    copyStr(&ptr, " / 4");
+    copyStr(&ptr, "<mo>/</mo><mn>4</mn>");
   }
-  copyStr(&ptr, "</span></span>) / ");
+  copyStr(&ptr, "</mrow></msqrt></mrow><mrow>");
   if ((ValB.limbs[0].x & 1) != 0)
   {
-    copyStr(&ptr, positiveDenominator?"(": "(&minus;");
-    copyStr(&ptr, "2<var>R</var>) = ");
+    if (positiveDenominator == 0)
+    {
+      copyStr(&ptr, "<mo>(</mo><mo>-</mo>");
+    }
+    else
+    {
+      copyStr(&ptr, "<mo>(</mo>");
+    }
+    copyStr(&ptr, "<mn>2</mn><mi>R</mi><mo>)</mo>");
   }
   else
   {
-    copyStr(&ptr, positiveDenominator ? "<var>R</var> = " : "(&minus;<var>R</var>) = ");
+    if (positiveDenominator == 0)
+    {
+      copyStr(&ptr, "<mo>(</mo><mo>-</mo><mi>R</mi><mo>)</mo>");
+    }
+    else
+    {
+      copyStr(&ptr, "<mi>R</mi>");
+    }
   }
+  copyStr(&ptr, "</mrow></mfrac><mo>=</mo>");
+  copyStr(&ptr, "<mfrac><mrow>");
   if (!BigIntIsZero(&ValU))
   {
-    copyStr(&ptr, "(");
+    copyStr(&ptr, "<mo>(</mo><mn>");
     BigInteger2Dec(&ptr, &ValU, groupLen);
-    copyStr(&ptr, " + ");
+    copyStr(&ptr, "</mn><mo>+</mo>");
   }
-  formatString(&ptr, "<span class=\"sqrtout\"><span class=\"sqrtin\">$1b</span></span>",
-    &ValL);
+  copyStr(&ptr, "<msqrt><mn>");
+  BigInteger2Dec(&ptr, &ValL, groupLen);
+  copyStr(&ptr, "</mn></msqrt>");
   if (!BigIntIsZero(&ValU))
   {
-    copyStr(&ptr, ")");
+    copyStr(&ptr, "<mo>)</mo>");
   }
-  copyStr(&ptr, " / ");
-  if (ValV.sign == SIGN_NEGATIVE)
-  {
-    copyStr(&ptr, "(");
-  }
+  copyStr(&ptr, "</mrow><mrow><mn>");
   BigInteger2Dec(&ptr, &ValV, groupLen);
-  if (ValV.sign == SIGN_NEGATIVE)
-  {
-    copyStr(&ptr, ")");
-  }
+  copyStr(&ptr, "</mn></mrow></mfrac>");
+  copyStr(&ptr, "</mrow></math>");
   *ptr = 0;   // String terminator.
 }
 
@@ -3106,7 +3590,9 @@ static enum eExprErr ContFrac(BigInteger *value, enum eShowSolution solutionNbr)
         showText(", ");
       }
       index++;
-      shownbr(&Tmp1);
+      mathStart();
+      mathMnBig(&Tmp1);
+      mathEnd();
       // Update numerator and denominator.
       (void)BigIntMultiply(&Tmp1, &ValV, &bigTmp); // U <- a*V - U
       BigIntSubt(&bigTmp, &ValU, &ValU);
@@ -3211,23 +3697,51 @@ static enum eExprErr ContFrac(BigInteger *value, enum eShowSolution solutionNbr)
   return EXPR_OK;
 }
 
-static void ShowRecSol(char variable, const BigInteger *coefX,
-                       const BigInteger *coefY, const BigInteger *coefInd)
+static void ShowRecSol(char variable, const char *coefX, const char *coefY,
+                       const char *coefInd, bool includeConst)
 {
-  enum eLinearSolution t;
-  *ptrOutput = variable;
-  ptrOutput++;
-  showText("<sub>n+1</sub> = ");
-  t = Show(coefX, "x<sub>n</sub>", SOLUTION_FOUND);
-  t = Show(coefY, "y<sub>n</sub>", t);
-  Show1(coefInd, t);
+  char varNext[80];
+  char varXn[60];
+  char varYn[60];
+  char *ptrVar;
+
+  ptrVar = varNext;
+  copyStr(&ptrVar, "<msub><mi>");
+  *ptrVar = variable;
+  ptrVar++;
+  copyStr(&ptrVar, "</mi><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow></msub>");
+
+  ptrVar = varXn;
+  copyStr(&ptrVar, "<msub><mi>x</mi><mi>n</mi></msub>");
+
+  ptrVar = varYn;
+  copyStr(&ptrVar, "<msub><mi>y</mi><mi>n</mi></msub>");
+
+  mathStart();
+  showText(varNext);
+  mathMo("=");
+  mathMi(coefX);
+  mathMul();
+  showText(varXn);
+  mathMo("+");
+  mathMi(coefY);
+  mathMul();
+  showText(varYn);
+  if (includeConst)
+  {
+    mathMo("+");
+    mathMi(coefInd);
+  }
+  mathEnd();
 }
 
 static void ShowResult(const char *text, const BigInteger *value)
 {
-  showText(text);
-  showText(" = ");
-  shownbr(value);
+  mathStart();
+  mathMi(text);
+  mathMo("=");
+  mathMnBig(value);
+  mathEnd();
   showText("<br>");
 }
 
@@ -3235,15 +3749,20 @@ static void ShowAllRecSols(void)
 {
   if ((ValP.nbrLimbs > 2) || (ValQ.nbrLimbs > 2))
   {
+    bool includeConst = (!BigIntIsZero(&ValAlpha) || !BigIntIsZero(&ValBeta));
     if (BigIntIsZero(&ValAlpha) && BigIntIsZero(&ValBeta))
     {
-      showText("x<sub>n+1</sub> = P&nbsp;&#8290;x<sub>n</sub> + Q&nbsp;&#8290;y<sub>n</sub><br>"
-        "y<sub>n+1</sub> = R&nbsp;&#8290;x<sub>n</sub> + S&nbsp;&#8290;y<sub>n</sub></p><p>");
+      ShowRecSol('x', "P", "Q", "K", includeConst);
+      showText("<br>");
+      ShowRecSol('y', "R", "S", "L", includeConst);
+      showText("</p><p>");
     }
     else
     {
-      showText("x<sub>n+1</sub> = P&nbsp;&#8290;x<sub>n</sub> + Q&nbsp;&#8290;y<sub>n</sub> + K<br>"
-        "y<sub>n+1</sub> = R&nbsp;&#8290;x<sub>n</sub> + S&nbsp;&#8290;y<sub>n</sub> + L</p><p>");
+      ShowRecSol('x', "P", "Q", "K", includeConst);
+      showText("<br>");
+      ShowRecSol('y', "R", "S", "L", includeConst);
+      showText("</p><p>");
     }
     // where:
     showText(LITERAL_SHOW_ALL_REC_SOLS1);
@@ -3263,7 +3782,8 @@ static void ShowAllRecSols(void)
   }
   else
   {
-    ShowRecSol('x', &ValP, &ValQ, &ValK);
+    bool includeConst = (!BigIntIsZero(&ValAlpha) || !BigIntIsZero(&ValBeta));
+    ShowRecSol('x', "P", "Q", "K", includeConst);
     *ptrOutput = '<';
     ptrOutput++;
     *ptrOutput = 'b';
@@ -3272,7 +3792,7 @@ static void ShowAllRecSols(void)
     ptrOutput++;
     *ptrOutput = '>';
     ptrOutput++;
-    ShowRecSol('y', &ValR, &ValS, &ValL);
+    ShowRecSol('y', "R", "S", "L", includeConst);
   }
   // Compute x_{n-1} from x_n and y_n
   // Compute new value of K and L as: Knew <- L*Q - K*S and Lnew <- K*R - L*P
@@ -3308,7 +3828,8 @@ static void ShowAllRecSols(void)
   }
   else
   {
-    ShowRecSol('x', &ValP, &ValQ, &ValK);
+    bool includeConst = (!BigIntIsZero(&ValAlpha) || !BigIntIsZero(&ValBeta));
+    ShowRecSol('x', "P", "Q", "K", includeConst);
     *ptrOutput = '<';
     ptrOutput++;
     *ptrOutput = 'b';
@@ -3317,7 +3838,7 @@ static void ShowAllRecSols(void)
     ptrOutput++;
     *ptrOutput = '>';
     ptrOutput++;
-    ShowRecSol('y', &ValR, &ValS, &ValL);
+    ShowRecSol('y', "R", "S", "L", includeConst);
   }
   *ptrOutput = '<';
   ptrOutput++;
@@ -3592,15 +4113,24 @@ static void callbackQuadModHyperbolic(BigInteger *value)
       showText("<p>");
       // There are no solutions of $1q using the continued fraction of $2s because
       formatString(&ptrOutput, LITERAL_CBACK_HYPERB1, equationNbr + 1, argContFrac);
-      showText("<var>D</var> &minus; <var>Q</var>");
-      showSquare();
+      mathStart();
+      mathMi("D");
+      mathMo("-");
+      mathMsup();
+      mathMi("Q");
+      mathMnInt(2);
+      mathMsupEnd();
+      mathEnd();
       // is not multiple of 
       showText(LITERAL_CBACK_HYPERB2);
+      mathStart();
       if ((ValB.limbs[0].x & 1) != 0)
       {                       // Odd discriminant.
-        showText("2");
+        mathMnInt(2);
       }
-      showText("<var>R</var></p>");
+      mathMi("R");
+      mathEnd();
+      showText("</p>");
     }
     equationNbr += 2;
     return;
@@ -3658,10 +4188,11 @@ static void callbackQuadModHyperbolic(BigInteger *value)
 static void PrintQuadEqConst(bool showEquationNbr)
 {
   showText("<p>");
-  PrintQuad(&ValA, &ValB, &ValC, "<var>X</var>", "<var>Y</var>");
-  showText(" = ");
-  shownbr(&ValK);
-  showText(" ");
+  mathStart();
+  PrintQuad(&ValA, &ValB, &ValC, "<mi>X</mi>", "<mi>Y</mi>");
+  mathMo("=");
+  mathMnBig(&ValK);
+  mathEnd();
   if (showEquationNbr && (ValK.sign == SIGN_POSITIVE))
   {
     showEqNbr(1);
@@ -3710,7 +4241,7 @@ void SolveQuadEquation(void)
   {
     enum eLinearSolution ret = LinearEq(&ValD, &ValE, &ValF);
     startResultBox(ret);
-    PrintLinear(ret, "t");
+    PrintLinear(ret, "<mi>t</mi>");
     endResultBox(ret);
     return;
   }
@@ -3724,10 +4255,23 @@ void SolveQuadEquation(void)
     showText("<p>");
     // The discriminant is
     showText(LITERAL_SOLVE_QUAD3);
-    showText(" <var>D</var> = <var>b</var>");
-    showSquare();
-    showText("&nbsp;&minus;&nbsp;4&#8290;<var>a</var>&#8290;<var>c</var> = ");
-    shownbr(&discr);
+    showText(" ");
+    mathStart();
+    mathMi("D");
+    mathMo("=");
+    mathMsup();
+    mathMi("b");
+    mathMnInt(2);
+    mathMsupEnd();
+    mathMo("-");
+    mathMnInt(4);
+    mathMul();
+    mathMi("a");
+    mathMul();
+    mathMi("c");
+    mathMo("=");
+    mathMnBig(&discr);
+    mathEnd();
     showText("</p>");
   }
   if (BigIntIsZero(&discr))
@@ -3785,23 +4329,92 @@ void SolveQuadEquation(void)
       showText("<p>");
       // We apply the transformation of Legendre
       showText(LITERAL_SOLVE_QUAD4);
-      showText("<var>D</var><var>x</var> = <var>X</var> + <var>&alpha;</var>,  <var>D</var><var>y</var> = <var>Y</var> + <var>&beta;</var>, ");
+      mathStart();
+      mathMi("D");
+      mathMul();
+      mathMi("x");
+      mathMo("=");
+      mathMi("X");
+      mathMo("+");
+      mathMi("&alpha;");
+      mathMo(",");
+      mathMi("D");
+      mathMul();
+      mathMi("y");
+      mathMo("=");
+      mathMi("Y");
+      mathMo("+");
+      mathMi("&beta;");
+      mathEnd();
       // and we obtain:
       showText(LITERAL_SOLVE_QUAD5);
-      showText("</p><p><var>&alpha;</var> = 2&#8290;<var>c</var>&#8290;<var>d</var> - <var>b</var>&#8290;<var>e</var> = ");
-      shownbr(&ValAlpha);
-      showText("</p><p><var>&beta;</var> = 2&#8290;<var>a</var>&#8290;<var>e</var> - <var>b</var>&#8290;<var>d</var> = ");
-      shownbr(&ValBeta);
+      showText("</p><p>");
+      mathStart();
+      mathMi("&alpha;");
+      mathMo("=");
+      mathMnInt(2);
+      mathMul();
+      mathMi("c");
+      mathMul();
+      mathMi("d");
+      mathMo("-");
+      mathMi("b");
+      mathMul();
+      mathMi("e");
+      mathMo("=");
+      mathMnBig(&ValAlpha);
+      mathEnd();
+      showText("</p><p>");
+      mathStart();
+      mathMi("&beta;");
+      mathMo("=");
+      mathMnInt(2);
+      mathMul();
+      mathMi("a");
+      mathMul();
+      mathMi("e");
+      mathMo("-");
+      mathMi("b");
+      mathMul();
+      mathMi("d");
+      mathMo("=");
+      mathMnBig(&ValBeta);
+      mathEnd();
       showText("</p>");
       PrintQuadEqConst(BigIntIsOne(&U1));
       showText("<p>");
       // where the right hand side equals 
       showText(LITERAL_SOLVE_QUAD6);
-      showText("&minus;<var>D</var> (<var>a</var>&#8290;<var>e</var>");
-      showSquare();
-      showText(" &minus; <var>b</var>&#8290;<var>e</var>&#8290;<var>d</var> + <var>c</var>&#8290;<var>d</var>");
-      showSquare();
-      showText(" + <var>f</var>&#8290;<var>D</var>)</p>");
+      mathStart();
+      mathMo("-");
+      mathMi("D");
+      mathMo("(");
+      mathMi("a");
+      mathMul();
+      mathMsup();
+      mathMi("e");
+      mathMnInt(2);
+      mathMsupEnd();
+      mathMo("-");
+      mathMi("b");
+      mathMul();
+      mathMi("e");
+      mathMul();
+      mathMi("d");
+      mathMo("+");
+      mathMi("c");
+      mathMul();
+      mathMsup();
+      mathMi("d");
+      mathMnInt(2);
+      mathMsupEnd();
+      mathMo("+");
+      mathMi("f");
+      mathMul();
+      mathMi("D");
+      mathMo(")");
+      mathEnd();
+      showText("</p>");
       if (!BigIntIsOne(&U1))
       {
         CopyBigInt(&ValABak, &ValA);
@@ -3815,7 +4428,9 @@ void SolveQuadEquation(void)
         showText("<p>");
         // Dividing both sides by
         showText(LITERAL_SOLVE_QUAD7);
-        Bin2Dec(&ptrOutput, U1.limbs, U1.nbrLimbs, groupLen);
+        mathStart();
+        mathMnBig(&U1);
+        mathEnd();
         showText(":</p>");
         PrintQuadEqConst(true);
         CopyBigInt(&ValA, &ValABak);
@@ -3900,8 +4515,12 @@ void quadText(char *coefAText, char *coefBText, char *coefCText,
   {
     const char* ptrBeginSol;
     showText("<h2>");
+    mathStart();
     ShowEq(&ValA, &ValB, &ValC, &ValD, &ValE, &ValF, "x", "y");
-    showText(" = 0</h2>");
+    mathMo("=");
+    mathMnInt(0);
+    mathEnd();
+    showText("</h2>");
     SolNbr = 0;
     ptrBeginSol = ptrOutput;
     SolveQuadEquation();

@@ -50,25 +50,65 @@ char *ptrOutput;
 #endif
 extern int factorsMod[20000];
 
+static void mathStart(void)
+{
+  copyStr(&ptrOutput, "<math><mrow>");
+}
+
+static void mathEnd(void)
+{
+  copyStr(&ptrOutput, "</mrow></math>");
+}
+
+static void mathMi(char letter)
+{
+  copyStr(&ptrOutput, "<mi>");
+  *ptrOutput = letter;
+  ptrOutput++;
+  copyStr(&ptrOutput, "</mi>");
+}
+
+static void mathMo(const char *op)
+{
+  copyStr(&ptrOutput, "<mo>");
+  copyStr(&ptrOutput, op);
+  copyStr(&ptrOutput, "</mo>");
+}
+
+static void mathMnBig(const BigInteger *value)
+{
+  copyStr(&ptrOutput, "<mn>");
+  BigInteger2Dec(&ptrOutput, value, groupLen);
+  copyStr(&ptrOutput, "</mn>");
+}
+
 static int Show(const BigInteger *num, const char *str, int t)
 {
   if (!BigIntIsZero(num))
   {     // num is not zero.
     if (((t & 1) != 0) && (num->sign == SIGN_POSITIVE))
     {
-      copyStr(&ptrOutput, " +");
+      mathMo("+");
     }
     if (num->sign == SIGN_NEGATIVE)
     {
-      copyStr(&ptrOutput, " &minus;");
+      mathMo("&minus;");
     }
-    if ((num->nbrLimbs != 1) || (num->limbs[0].x != 1))
-    {    // num is not 1 or -1.
-      *ptrOutput = ' ';
-      ptrOutput++;
-      Bin2Dec(&ptrOutput, num->limbs, num->nbrLimbs, groupLen);
+    bool showCoeff = ((num->nbrLimbs != 1) || (num->limbs[0].x != 1));
+    if (showCoeff)
+    {
+      CopyBigInt(&Aux1, num);
+      Aux1.sign = SIGN_POSITIVE;
+      mathMnBig(&Aux1);
     }
-    copyStr(&ptrOutput, str);
+    if (str[0] != 0)
+    {
+      if (showCoeff)
+      {
+        mathMo("&InvisibleTimes;");
+      }
+      copyStr(&ptrOutput, str);
+    }
     return t | 1;
   }
   return t;
@@ -79,19 +119,21 @@ void Show1(const BigInteger *num, int t)
   int u = Show(num, "", t);
   if (((u & 1) == 0) || ((num->nbrLimbs == 1) && (num->limbs[0].x == 1)))
   {
-    *ptrOutput = ' ';
-    ptrOutput++;
     CopyBigInt(&Aux1, num);
     Aux1.sign = SIGN_POSITIVE;
-    BigInteger2Dec(&ptrOutput, &Aux1, groupLen);
+    mathMnBig(&Aux1);
   }
 }
 
 void Solution(BigInteger *value)
 {
   SolNbr++;
-  copyStr(&ptrOutput, "<li>x = ");
-  BigInteger2Dec(&ptrOutput, value, groupLen);
+  copyStr(&ptrOutput, "<li>");
+  mathStart();
+  mathMi('x');
+  mathMo("=");
+  mathMnBig(value);
+  mathEnd();
   copyStr(&ptrOutput, "</li>");
 }
 
@@ -104,7 +146,11 @@ static void SolveIntegerEquation(void)
     {    // Constant Equation
       if (BigIntIsZero(&ValC))
       {  // 0 = 0
-        copyStr(&ptrOutput, "<p>The equation is satisfied by any integer <var>x</var>.</p>");
+        copyStr(&ptrOutput, "<p>The equation is satisfied by any integer ");
+        mathStart();
+        mathMi('x');
+        mathEnd();
+        copyStr(&ptrOutput, ".</p>");
       }
       else
       {
@@ -208,9 +254,15 @@ static void ModulusIsNotZero(void)
   {     // All values from 0 to GcdAll - 1 are solutions.
     if ((GcdAll.nbrLimbs > 1) || (GcdAll.limbs[0].x > 5))
     {
-      copyStr(&ptrOutput, "<p>All values of <var>x</var> between 0 and ");
+      copyStr(&ptrOutput, "<p>All values of ");
+      mathStart();
+      mathMi('x');
+      mathEnd();
+      copyStr(&ptrOutput, " between 0 and ");
       addbigint(&GcdAll, -1);
-      BigInteger2Dec(&ptrOutput, &GcdAll, groupLen);
+      mathStart();
+      mathMnBig(&GcdAll);
+      mathEnd();
       copyStr(&ptrOutput, " are solutions.</p>");
     }
     else
@@ -279,12 +331,18 @@ void quadmodText(const char *quadrText, const char *linearText, const char *cons
   if (ptrOutput == &output[1])
   {    // No errors found.
     copyStr(&ptrOutput, "<p>");
-    int u = Show(&ValA, " x&sup2;", 2);
-    u = Show(&ValB, " x", u);
+    mathStart();
+    int u = Show(&ValA, "<msup><mi>x</mi><mn>2</mn></msup>", 2);
+    u = Show(&ValB, "<mi>x</mi>", u);
     Show1(&ValC, u);
-    copyStr(&ptrOutput, " &equiv; 0 (mod ");
-    BigInteger2Dec(&ptrOutput, &ValN, groupLen);
-    copyStr(&ptrOutput, ")</p>");
+    mathMo("&equiv;");
+    copyStr(&ptrOutput, "<mn>0</mn>");
+    mathMo("(");
+    mathMo("mod");
+    mathMnBig(&ValN);
+    mathMo(")");
+    mathEnd();
+    copyStr(&ptrOutput, "</p>");
     SolNbr = 0;
     ptrBeginSol = ptrOutput;
     copyStr(&ptrOutput, "<ol>");
