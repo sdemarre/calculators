@@ -265,11 +265,11 @@ static void showRationalPretty(const BigRational* rat, showGenericFunc showGener
 {
   if (pretty == PRETTY_PRINT)
   {
-    showText("<f-f><f-n>");
+    showText("<mfrac><mrow>");
     shownbr(&rat->numerator);
-    showText("</f-n><f-d>");
+    showText("</mrow><mrow>");
     showDenomPretty(rat, showGeneric);
-    showText("</f-d></f-f>");
+    showText("</mrow></mfrac>");
   }
   else
   {      // Tex
