@@ -416,11 +416,11 @@ void showRatConstants(const char* numerator, const char* denominator)
 {
   if (pretty == PRETTY_PRINT)
   {
-    showText("<f-f><f-n>");
+    showText("<mfrac><mrow>");
     showText(numerator);
-    showText("</f-n><f-d>");
+    showText("</mrow><mrow>");
     showText(denominator);
-    showText("</f-d></f-f>");
+    showText("</mrow></mfrac>");
   }
   else if (pretty == TEX)
   {

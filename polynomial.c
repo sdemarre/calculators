@@ -113,9 +113,10 @@ static void show1overM(int expon)
 {
   if (pretty == PRETTY_PRINT)
   {
-    copyStr(&ptrOutput, " = <f-f><f-n>1</f-n><f-d>p");
-    showExponent(&ptrOutput, expon);
-    copyStr(&ptrOutput, "</f-d></f-f> &#8290; (");
+    copyStr(&ptrOutput, " = <mfrac><mrow><mn>1</mn></mrow><mrow><msup><mi>p</mi><mn>");
+    int2dec(&ptrOutput, expon);
+    copyStr(&ptrOutput, "</mn></msup></mrow></mfrac>");
+    copyStr(&ptrOutput, "<mo>&InvisibleTimes;</mo> (");
   }
   else
   {
@@ -130,8 +131,12 @@ static void showSumOfProducts(void)
   if (pretty == PRETTY_PRINT)
   {
     copyStr(&ptrOutput,
-      "<f-f><f-n>f<sub>1</sub>(x)</f-n><f-d>f<sub>1, 1</sub>(x)</f-d></f-f> &#8290; a<sub>1, 1</sub>(x) + ... + "
-      "<f-f><f-n>f<sub>1</sub>(x)</f-n><f-d>f<sub>1, n</sub>(x)</f-d></f-f> &#8290; a<sub>1, n</sub>(x)");
+      "<mfrac><mrow><msub><mi>f</mi><mn>1</mn></msub><mo>(</mo><mi>x</mi><mo>)</mo></mrow>"
+      "<mrow><msub><mi>f</mi><mrow><mn>1</mn><mo>,</mo><mn>1</mn></mrow></msub><mo>(</mo><mi>x</mi><mo>)</mo></mrow></mfrac>"
+      "<mo>&InvisibleTimes;</mo> <msub><mi>a</mi><mrow><mn>1</mn><mo>,</mo><mn>1</mn></mrow></msub><mo>(</mo><mi>x</mi><mo>)</mo> <mo>+</mo> ... <mo>+</mo> "
+      "<mfrac><mrow><msub><mi>f</mi><mn>1</mn></msub><mo>(</mo><mi>x</mi><mo>)</mo></mrow>"
+      "<mrow><msub><mi>f</mi><mrow><mn>1</mn><mo>,</mo><mi>n</mi></mrow></msub><mo>(</mo><mi>x</mi><mo>)</mo></mrow></mfrac>"
+      "<mo>&InvisibleTimes;</mo> <msub><mi>a</mi><mrow><mn>1</mn><mo>,</mo><mi>n</mi></mrow></msub><mo>(</mo><mi>x</mi><mo>)</mo>");
   }
   else
   {
@@ -2309,7 +2314,7 @@ void outputOriginalPolynomial(char** pptrOutput, int groupLength)
     isFraction = true;
     if (pretty == PRETTY_PRINT)
     {
-      copyStr(pptrOutput, "<f-f><f-n>");
+      copyStr(pptrOutput, "<mfrac><mrow>");
     }
     else if (pretty == PARI_GP)
     {
@@ -2327,7 +2332,7 @@ void outputOriginalPolynomial(char** pptrOutput, int groupLength)
   }
   if (pretty == PRETTY_PRINT)
   {
-    copyStr(pptrOutput, "</f-n><f-d>");
+    copyStr(pptrOutput, "</mrow><mrow>");
   }
   else if (pretty == PARI_GP)
   {
@@ -2340,7 +2345,7 @@ void outputOriginalPolynomial(char** pptrOutput, int groupLength)
   outputOriginalPolynomialElem(pptrOutput, common.poly.denom, groupLength);
   if (pretty == PRETTY_PRINT)
   {
-    copyStr(pptrOutput, "</f-d></f-f>");
+    copyStr(pptrOutput, "</mrow></mfrac>");
   }
   else if (pretty == PARI_GP)
   {
