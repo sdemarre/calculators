@@ -35,12 +35,12 @@ fi
 compiler_options=(--compilation_level ADVANCED_OPTIMIZATIONS --isolation_mode IIFE --externs=custom-externs.js --js androidextern.js --js commonNoAndroid.js)
 compiler_options_and=(--compilation_level ADVANCED_OPTIMIZATIONS --isolation_mode IIFE --externs=custom-externs.js --js androidextern.js --js commonAndroid.js)
 compile_flags=(-r -Os -Wall -finline-functions -DNDEBUG)
-common_link_flags=(-Os --no-entry -s DYNAMIC_EXECUTION=0 -s SUPPORT_ERRNO=0 -s ASSERTIONS=0 -s NO_FILESYSTEM=1 --js-library lib.js --pre-js pre.js)
+common_link_flags=(-Os --no-entry -s SUPPORT_ERRNO=0 -s ASSERTIONS=0 -s NO_FILESYSTEM=1 --js-library lib.js --pre-js pre.js)
 common_flags_extra=()
 if [[ -n "${COMMON_FLAGS:-}" ]]; then
   read -r -a common_flags_extra <<< "${COMMON_FLAGS}"
 fi
-js_common=("${common_link_flags[@]}" -s WASM=0 -s SINGLE_FILE=1 -s TEXTDECODER=1 "-s INCOMING_MODULE_JS_API=['preRun','noInitialRun']" -s WASM_ASYNC_COMPILATION=0 "-s ENVIRONMENT=worker" --closure 1 --memory-init-file 0 obj.o)
+js_common=("${common_link_flags[@]}" -s WASM=0 -s SINGLE_FILE=1 -s TEXTDECODER=1 "-s INCOMING_MODULE_JS_API=['preRun','noInitialRun']" -s WASM_ASYNC_COMPILATION=0 "-s ENVIRONMENT=worker" --closure 1 obj.o)
 wasm_common=("${common_link_flags[@]}" -s WASM=1 "${common_flags_extra[@]}" -D_USING64BITS_ obj.o)
 
 rm -f *.wasm *00*js
