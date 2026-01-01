@@ -240,19 +240,9 @@ static void mathMsup(void)
   showText("<msup>");
 }
 
-static void mathMsub(void)
-{
-  showText("<msub>");
-}
-
 static void mathMsupEnd(void)
 {
   showText("</msup>");
-}
-
-static void mathMsubEnd(void)
-{
-  showText("</msub>");
 }
 
 static void mathMfrac(void)

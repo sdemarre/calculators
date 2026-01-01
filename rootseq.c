@@ -73,10 +73,6 @@ const char* ptrPi;
 const char* ptrI;
 static int totients[(2 * MAX_DEGREE) + 1];
 extern char* ptrOutput;
-static char Sine[100];
-static char Cosine[100];
-static char ArcCosine[100];
-static char TimesPi[100];
 
 enum toShow
 {
