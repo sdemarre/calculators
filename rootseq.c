@@ -412,10 +412,76 @@ void showRatConstants(const char* numerator, const char* denominator)
 {
   if (pretty == PRETTY_PRINT)
   {
+    const char* ptr = numerator;
+    bool isNumber = (*ptr == '-') || ((*ptr >= '0') && (*ptr <= '9'));
+    if (isNumber)
+    {
+      ptr += (*ptr == '-');
+      while (*ptr != 0)
+      {
+        if ((*ptr < '0') || (*ptr > '9'))
+        {
+          isNumber = false;
+          break;
+        }
+        ptr++;
+      }
+    }
     showText("<mfrac><mrow>");
-    showText(numerator);
+    if (isNumber)
+    {
+      if (*numerator == '-')
+      {
+        showText("<mo>&minus;</mo><mn>");
+        showText(numerator + 1);
+        showText("</mn>");
+      }
+      else
+      {
+        showText("<mn>");
+        showText(numerator);
+        showText("</mn>");
+      }
+    }
+    else
+    {
+      showText(numerator);
+    }
+    ptr = denominator;
+    isNumber = (*ptr == '-') || ((*ptr >= '0') && (*ptr <= '9'));
+    if (isNumber)
+    {
+      ptr += (*ptr == '-');
+      while (*ptr != 0)
+      {
+        if ((*ptr < '0') || (*ptr > '9'))
+        {
+          isNumber = false;
+          break;
+        }
+        ptr++;
+      }
+    }
     showText("</mrow><mrow>");
-    showText(denominator);
+    if (isNumber)
+    {
+      if (*denominator == '-')
+      {
+        showText("<mo>&minus;</mo><mn>");
+        showText(denominator + 1);
+        showText("</mn>");
+      }
+      else
+      {
+        showText("<mn>");
+        showText(denominator);
+        showText("</mn>");
+      }
+    }
+    else
+    {
+      showText(denominator);
+    }
     showText("</mrow></mfrac>");
   }
   else if (pretty == TEX)
@@ -1054,20 +1120,31 @@ static void showTrig(int numerator, int denominator, const char* multiplicand)
   showText(multiplicand);
   if (*multiplicand != 0)
   {
-    if (pretty != PARI_GP)
+    if (pretty == PRETTY_PRINT)
+    {
+      showText(ptrTimes);
+    }
+    else if (pretty != PARI_GP)
     {
       *ptrOutput = ' ';
       ptrOutput++;
+      showText(ptrTimes);
     }
-    showText(ptrTimes);
+    else
+    {
+      showText(ptrTimes);
+    }
   }
   showText(ptrCos);
   ptrNum = num;
   if (numerator != 1)
   {
     int2dec(&ptrNum, numerator);
-    *ptrOutput = ' ';
-    ptrOutput++;
+    if (pretty != PRETTY_PRINT)
+    {
+      *ptrOutput = ' ';
+      ptrOutput++;
+    }
     showTimesPi(&ptrNum);
   }
   else
@@ -1080,18 +1157,39 @@ static void showTrig(int numerator, int denominator, const char* multiplicand)
     *ptrOutput = '}';
     ptrOutput++;
   }
-  showText(" + ");
+  if (pretty == PRETTY_PRINT)
+  {
+    showText("<mo>+</mo>");
+  }
+  else
+  {
+    showText(" + ");
+  }
   showText(ptrI);
-  showText(" ");
-  showText(ptrTimes);
+  if (pretty == PRETTY_PRINT)
+  {
+    showText(ptrTimes);
+  }
+  else
+  {
+    showText(" ");
+    showText(ptrTimes);
+  }
   showText(multiplicand);
   if (*multiplicand != 0)
   {
-    *ptrOutput = ' ';
-    ptrOutput++;
-    showText(ptrTimes);
-    *ptrOutput = ' ';
-    ptrOutput++;
+    if (pretty == PRETTY_PRINT)
+    {
+      showText(ptrTimes);
+    }
+    else
+    {
+      *ptrOutput = ' ';
+      ptrOutput++;
+      showText(ptrTimes);
+      *ptrOutput = ' ';
+      ptrOutput++;
+    }
   }
   showText(ptrSin);
   if (pretty != PARI_GP)
