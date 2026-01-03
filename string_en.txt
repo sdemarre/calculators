@@ -336,7 +336,7 @@ LITERAL_SOLVE_QUAD1 "The constant coefficient is not multiple of $1b, which is t
 LITERAL_SOLVE_QUAD2 "There are no solutions."
 LITERAL_SOLVE_QUAD3 "The discriminant is"
 LITERAL_SOLVE_QUAD4 "We apply the transformation of Legendre "
-LITERAL_SOLVE_QUAD5 "and we obtain:"
+LITERAL_SOLVE_QUAD5 ", and we obtain:"
 LITERAL_SOLVE_QUAD6 "where the right-hand side equals "
 LITERAL_SOLVE_QUAD7 "Dividing both sides by "
 LITERAL_SOLVE_QUAD8 "The right-hand side is not multiple of $1b, which is the greatest common divisor of all three coefficients, so there are no solutions"
