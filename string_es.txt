@@ -336,7 +336,7 @@ LITERAL_SOLVE_QUAD1 "El término independiente no es múltiplo de $1b, que es el
 LITERAL_SOLVE_QUAD2 "No hay soluciones."
 LITERAL_SOLVE_QUAD3 "El discriminante es"
 LITERAL_SOLVE_QUAD4 "Aplicamos la transformación de Legendre "
-LITERAL_SOLVE_QUAD5 "y obtenemos:"
+LITERAL_SOLVE_QUAD5 ", y obtenemos:"
 LITERAL_SOLVE_QUAD6 "donde el término derecho es igual a "
 LITERAL_SOLVE_QUAD7 "Dividiendo ambos miembros por "
 LITERAL_SOLVE_QUAD8 "El término derecho no es múltiplo de $1b, que es el máximo común divisor de los tres coeficientes, así que no hay soluciones"
